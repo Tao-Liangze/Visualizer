@@ -445,6 +445,7 @@ async drawChart() {
         dataset["label"] = this.y_quantities_selected[j];
         dataset["backgroundColor"] = colors[j];
         dataset["borderColor"] = colors[j];
+        dataset["fill"] = false;
         dataset["borderWidth"] = this.chart_line_width;
         dataset["pointStyle"] = this.chart_point_style;
         dataset["radius"] = this.chart_point_radius;
@@ -582,6 +583,21 @@ async drawChart() {
               font: {
                 size: 15
               },
+              usePointStyle: false,
+              boxWidth: 15,
+              generateLabels: function(chart) {
+                const datasets = chart.data.datasets;
+                return datasets.map(function(dataset, i) {
+                  return {
+                    text: dataset.label,
+                    fillStyle: dataset.borderColor,
+                    strokeStyle: dataset.borderColor,
+                    lineWidth: 2,
+                    hidden: !chart.isDatasetVisible(i),
+                    index: i
+                  };
+                });
+              }
             }
           },
           zoom: {

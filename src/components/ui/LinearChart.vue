@@ -107,6 +107,21 @@ export default {
               font: {
                 size: 15
               },
+              usePointStyle: false,
+              boxWidth: 15,
+              generateLabels: function(chart) {
+                const datasets = chart.data.datasets;
+                return datasets.map(function(dataset, i) {
+                  return {
+                    text: dataset.label,
+                    fillStyle: dataset.borderColor,
+                    strokeStyle: dataset.borderColor,
+                    lineWidth: 2,
+                    hidden: !chart.isDatasetVisible(i),
+                    index: i
+                  };
+                });
+              }
             }
           },
           zoom: {
