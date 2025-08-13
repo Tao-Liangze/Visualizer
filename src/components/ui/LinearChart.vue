@@ -191,7 +191,7 @@ export default {
           data: [],
         }]
       },
-      chart_color_scales_selected: "Viridis",
+      chart_color_scales_selected: "Blues",
       chart_color_scales_options: [
         { text: 'Viridis (recommended)', value: 'Viridis' },
         { text: 'Hot', value: ['black', 'red', 'yellow'] },

@@ -3,7 +3,7 @@
 
     <!-- Google Charts container. -->
     <div class="content-chart">
-      <div id="spinner-layer" style="position: relative; width: 100%; height: 100%; display:none;">
+      <div id="spinner-layer" style="position: relative; width: 100%; height: 100%;" v-show="isLoading">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
           <div class="spinner"></div>
         </div>
@@ -100,10 +100,10 @@
 
           <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number" @input="drawChart"></v-text-field>
 
-          <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="点风格"
+          <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="曲线风格"
             outlined dense v-on:change="drawChart"></v-select>
 
-          <v-text-field v-model="chart_point_radius" label="点大小" outlined dense type="number" @input="drawChart"></v-text-field>
+          
 
           <v-select v-model="chartOptions.plugins.legend.position" v-bind:items="chart_legend_position" label="图例位置"
             outlined dense v-on:change="placeholderFunction"></v-select>
@@ -212,7 +212,12 @@ export default {
       }
     },
     drawVisualizerChart() {
+      // 重定向到drawChart方法，确保一致性
+      this.drawChart();
+      return;
+      /* 以下代码已弃用
       if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
+        this.isLoading = true;
         this.chartData = { labels: [], datasets: [] };
         return;
       }
@@ -262,7 +267,8 @@ export default {
       });
 
       this.chartData = chartData;
-    },
+      this.isLoading = false;
+    */},
     // Open and close left menu.
     leftMenu() {
       if (document.getElementById("body").classList.contains("left-menu-closed")) {
@@ -294,11 +300,11 @@ export default {
     onXQuantitySelected(xQuantitySelected) {
       this.x_quantity_selected = xQuantitySelected;
       this.chartOptions.scales.x.title.text = xQuantitySelected;
-      this.drawVisualizerChart();
+      this.drawChart();
     },
     onYQuantitySelected(yQuantitySelected) {
       this.y_quantities_selected = yQuantitySelected;
-      this.drawVisualizerChart();
+      this.drawChart();
     },
     onChartDownload() {
       if (this.chart_download_format_selected === 'png') {
@@ -382,7 +388,11 @@ export default {
       document.getElementById("chart").style.display = "block";
     },
 async drawChart() {
-      if (!this.mot_data) return;
+      if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
+        this.isLoading = true;
+        this.chartData = { labels: [], datasets: [] };
+        return;
+      }
       // Show spinner and hide chart until finished.
       document.getElementById("spinner-layer").style.display = "block";
       document.getElementById("chart").style.display = "None";
@@ -398,7 +408,11 @@ async drawChart() {
       let j = 0;
       this.chartData.labels = []
       this.chartData.datasets = []
-      var colors = chroma.scale("Viridis").correctLightness().gamma(2).cache(false).colors(this.y_quantities_selected.length);
+      var colors = chroma.scale("Viridis").correctLightness().gamma(7.5).cache(false).colors(this.y_quantities_selected.length);
+      colors = colors.map((color, index) => {
+        if (index === 2) return "#1f77b4"; // 第三根线改为蓝色
+        return color;
+      });
       if (selectedText == "Spectral" || selectedText == "Rainbow" || selectedText == "Red-Yellow-Blue" || selectedText == "Yellow-Green-Blue")
           colors = chroma.scale(this.chart_color_scales_selected).colors(this.y_quantities_selected.length);
       else if (selectedText == "Yellow-Green")
@@ -446,9 +460,20 @@ async drawChart() {
         dataset["backgroundColor"] = colors[j];
         dataset["borderColor"] = colors[j];
         dataset["fill"] = false;
-        dataset["borderWidth"] = this.chart_line_width;
-        dataset["pointStyle"] = this.chart_point_style;
-        dataset["radius"] = this.chart_point_radius;
+        
+        // 确保当点风格为line时，无论线宽如何都能正确显示曲线
+        if (this.chart_point_style === 'line') {
+          dataset["showLine"] = true;
+          dataset["tension"] = 0.4; // 添加一些曲线平滑度
+          dataset["borderWidth"] = this.chart_line_width === 0 ? 1 : this.chart_line_width; // 如果线宽为0，使用1作为默认值
+          dataset["pointStyle"] = 'circle'; // 当使用line模式时，将点风格改为circle以确保正确显示
+          dataset["pointRadius"] = 0; // 隐藏数据点，只显示线条
+        } else {
+          dataset["borderWidth"] = this.chart_line_width;
+          dataset["pointStyle"] = this.chart_point_style;
+          dataset["radius"] = 3; // 使用固定的小点大小
+        }
+        
         dataset["parsing"] = {
             "xAxisKey": this.x_quantity_selected,
             "yAxisKey": this.y_quantities_selected[j]
@@ -511,9 +536,10 @@ async drawChart() {
       x_data: [],
       placeholder: [],
       chart_download_format_selected: 'png',
-      chart_color_scales_selected: "Viridis",
+      chart_color_scales_selected: "Viridis", // 默认配色方案
       chart_color_scales_options: [
-        { text: 'Viridis (recommended)', value: 'Viridis' },
+        { text: 'Viridis (默认)', value: 'Viridis' },
+        { text: 'Plasma (暗色系推荐)', value: 'Plasma' },
         { text: 'Hot', value: ['black', 'red', 'yellow'] },
         { text: 'Yellow-Blue', value: ['yellow', 'blue'] },
         { text: 'Yellow-Green', value: ['yellow', 'green'] },
@@ -528,9 +554,11 @@ async drawChart() {
           data: [],
         }]
       },
-      chart_line_width: 0,
+      chart_line_width: 2,
       chart_point_style_options: ["none", "circle", "cross", "crossRot", "dash", "line", "rect", "rectRounded", "rectRot", "star", "triangle"],
+      // 点风格选项的显示名称，"line"表示连续曲线
       chart_point_style: 'line',
+      // 保留但不再使用的点大小属性
       chart_point_radius: 6,
       chartOptions: {
         responsive: true,
