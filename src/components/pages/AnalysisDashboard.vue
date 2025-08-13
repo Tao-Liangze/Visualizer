@@ -108,7 +108,7 @@
                 </v-dialog>
 
 
-                <v-btn class="w-100 mt-4" :to="{ name: 'SelectSession' }">Back to session list
+                <v-btn class="w-100 mt-4" :to="{ name: 'SelectSession' }">返回动作列表
                 </v-btn>
 
                 <v-btn class="w-100 mt-4" @click="$router.push({ name: 'Session', params: { id: session_selected.id } })">

@@ -32,12 +32,12 @@
         </v-select></div>
       </div>
 
-    <div class="content-chart" style="width: 100%;background-color: black;position: relative;top: 0px;">
+    <div class="content-chart" style="width: 100%;background-color: #424242;position: relative;top: 0px;">
       <LineChartGenerator
         id="chart"
         :chart-options="chartOptions"
         :chart-data="chartData"
-        style="position: relative; width: 100%; height: 100%; background-color: black;"
+        style="position: relative; width: 100%; height: 100%; background-color: #424242;"
         ref="chartRef"
       />
     </div>

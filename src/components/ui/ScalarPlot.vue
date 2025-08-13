@@ -107,7 +107,7 @@ export default {
 .scalar-plot {
   width: 300px;
   height: 100vh;
-  background: black;
+  background: #424242;
   color: white;
   margin-bottom: 1rem;
   overflow-y: auto;

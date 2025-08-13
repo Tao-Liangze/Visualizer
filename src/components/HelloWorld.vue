@@ -18,14 +18,14 @@
           src="/dataForVisualizer/1.mp4"
           autoplay
           loop
-          style="height: 43%; object-fit: contain; background: #000; width: 100%; border: 1px solid #222;"
+          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555;"
         />
         <video
           ref="video2"
           src="/dataForVisualizer/2.mp4"
           autoplay
           loop
-          style="height: 43%; object-fit: contain; background: #000; width: 100%; border: 1px solid #222; margin-top: 4px;"
+          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555; margin-top: 4px;"
         />
 
         <!-- 控制区，水平居中，紧贴视频下方 -->

@@ -326,7 +326,7 @@
   
                   <v-btn small class="mt-4 w-100" v-show="show_controls" @click="$router.push({ name: 'SelectSession'})"
                       :disabled="busy || state !== 'ready'">
-                      Back to session list
+                      返回动作列表
                   </v-btn>
               </div>
           </div>

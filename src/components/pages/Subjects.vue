@@ -440,7 +440,7 @@ export default {
         this.subject_sort = this.options.sortBy
         this.subject_sort_desc = this.options.sortDesc
         this.loadValidSubjects()
-        console.log("OPTIONS", this.options)
+        console.log("绘图选项", this.options)
       },
       deep: true
     },

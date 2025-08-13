@@ -24,27 +24,27 @@
     <!-- Left floating button. -->
     <div id="button-left" class="pa-2 fixed-button fixed-button-to-left">
       <v-btn @click="leftMenu">
-        Data
+        数据选项
       </v-btn>
     </div>
 
     <!-- Right floating button. -->
     <div id="button-right" class="pa-2 fixed-button fixed-button-to-right">
       <v-btn @click="rightMenu">
-        Options
+        绘图选项
       </v-btn>
     </div>
 
     <!-- Left sidebar. -->
-    <v-card class="sidebar left-sidebar">
+    <v-card class="sidebar left-sidebar" color="#424242">
       <div class="pa-4 left-menu-close-button">
-        <v-btn width="64px" @click="leftMenu">
-          ✖
+        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2" @click="leftMenu">
+          <v-icon small color="white">mdi-chevron-left</v-icon>
         </v-btn>
       </div>
-      <v-card-text height="100%">
-        <v-toolbar-title class="text-center">数据可视化</v-toolbar-title>
-        <v-subheader class="subheader-bold"></v-subheader>
+      <v-card-text height="100%" class="white--text">
+        <v-toolbar-title class="text-center white--text sidebar-title">数据可视化</v-toolbar-title>
+        <v-subheader class="subheader-bold white--text"></v-subheader>
         <div class="left d-flex flex-column pa-2">
 
 <!--          <hr>-->
@@ -69,7 +69,7 @@
         </v-btn>
 
         <div v-if="loggedIn" class="left d-flex flex-column">
-          <v-btn class="w-100 mt-4" :to="{ name: 'SelectSession' }">Back to session list
+          <v-btn class="w-100 mt-4" :to="{ name: 'SelectSession' }">返回动作列表
           </v-btn>
         </div>
       </div>
@@ -77,17 +77,17 @@
     </v-card>
 
     <!-- Right sidebar. -->
-    <v-card class="sidebar right-sidebar">
+    <v-card class="sidebar right-sidebar" color="#424242">
       <div class="pa-4 right-menu-close-button">
-        <v-btn width="64px" @click="rightMenu">
-          ✖
+        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2" @click="rightMenu">
+          <v-icon small color="white">mdi-chevron-right</v-icon>
         </v-btn>
       </div>
-      <v-card-text>
+      <v-card-text class="white--text">
 
-        <v-toolbar-title class="text-center">Options Menu</v-toolbar-title>
+        <v-toolbar-title class="text-center white--text sidebar-title">绘图选项</v-toolbar-title>
 
-        <v-subheader class="subheader-bold"></v-subheader>
+        <v-subheader class="subheader-bold white--text"></v-subheader>
 
         <div class="left d-flex flex-column pa-2">
           <v-text-field v-model="chartOptions.plugins.title.text" label="标题" outlined dense></v-text-field>
@@ -669,16 +669,26 @@ async drawChart() {
   top: 0;
   bottom: 0;
   width: 300px;
-  transition: transform 0.2s;
-  overflow-y: scroll;
+  transition: transform 0.2s, box-shadow 0.3s;
+  overflow-y: auto;
+  color: white;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 .left-sidebar {
   left: 0;
+  background: linear-gradient(135deg, #2c3e50, #4a6572);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .right-sidebar {
   right: 0;
+  background: linear-gradient(135deg, #1a2a6c, #2a4858);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px 0 0 8px;
 }
 
 .content {
@@ -692,6 +702,41 @@ async drawChart() {
 
 .right-menu-closed>.right-sidebar {
   transform: translateX(300px);
+}
+
+/* 美化滚动条 */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  margin: 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subheader-bold {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+  margin-top: 10px;
 }
 
 .fixed-button {
