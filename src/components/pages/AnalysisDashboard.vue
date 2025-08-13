@@ -112,7 +112,7 @@
                 </v-btn>
 
                 <v-btn class="w-100 mt-4" @click="$router.push({ name: 'Session', params: { id: session_selected.id } })">
-                  Go to Visualizer
+                  转到动作可视化
                 </v-btn>
 
               </div>

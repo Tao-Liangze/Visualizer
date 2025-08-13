@@ -43,17 +43,17 @@
         </v-btn>
       </div>
       <v-card-text height="100%">
-        <v-toolbar-title class="text-center">Data Menu</v-toolbar-title>
+        <v-toolbar-title class="text-center">数据可视化</v-toolbar-title>
         <v-subheader class="subheader-bold"></v-subheader>
         <div class="left d-flex flex-column pa-2">
 
 <!--          <hr>-->
 
 
-          <v-select v-bind:items="x_quantities" v-model="x_quantity_selected" label="X Quantity" outlined dense
+          <v-select v-bind:items="x_quantities" v-model="x_quantity_selected" label="X轴" outlined dense
             v-on:change="onXQuantitySelected"></v-select>
 
-          <v-select v-bind:items="y_quantities" label="Y Quantities" multiple outlined dense
+          <v-select v-bind:items="y_quantities" label="Y轴" multiple outlined dense
             v-on:change="onYQuantitySelected"></v-select>
         </div>
       </v-card-text>
@@ -61,11 +61,11 @@
       <div class="left d-flex flex-column pa-2">
 
         <v-btn class="w-100" @click="onChartDownload">
-          Download Chart
+          下载曲线图
         </v-btn>
 
         <v-btn class="w-100 mt-4" @click="$router.push({ name: 'HelloWorld' })">
-          Go to Visualizer
+          转到动作可视化
         </v-btn>
 
         <div v-if="loggedIn" class="left d-flex flex-column">
@@ -90,15 +90,15 @@
         <v-subheader class="subheader-bold"></v-subheader>
 
         <div class="left d-flex flex-column pa-2">
-          <v-text-field v-model="chartOptions.plugins.title.text" label="Title" outlined dense></v-text-field>
+          <v-text-field v-model="chartOptions.plugins.title.text" label="标题" outlined dense></v-text-field>
 
-          <v-text-field v-model="chartOptions.plugins.subtitle.text" label="Subtitle" outlined dense></v-text-field>
+          <v-text-field v-model="chartOptions.plugins.subtitle.text" label="副标题" outlined dense></v-text-field>
 
-          <v-text-field v-model="chartOptions.scales.x.title.text" label="H. Axis Title" outlined dense></v-text-field>
+          <v-text-field v-model="chartOptions.scales.x.title.text" label="X轴标题" outlined dense></v-text-field>
 
-          <v-text-field v-model="chartOptions.scales.y.title.text" label="V. Axis Title" outlined dense></v-text-field>
+          <v-text-field v-model="chartOptions.scales.y.title.text" label="Y轴标题" outlined dense></v-text-field>
 
-          <v-text-field v-model="chart_line_width" label="Line Width" outlined dense type="number" @input="drawChart"></v-text-field>
+          <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number" @input="drawChart"></v-text-field>
 
           <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="Point Style"
             outlined dense v-on:change="drawChart"></v-select>
