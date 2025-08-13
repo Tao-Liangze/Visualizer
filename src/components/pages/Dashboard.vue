@@ -46,30 +46,9 @@
         <v-toolbar-title class="text-center">Data Menu</v-toolbar-title>
         <v-subheader class="subheader-bold"></v-subheader>
         <div class="left d-flex flex-column pa-2">
-          <div class="pb-4">
-          <div v-for="(trial_selection, idx) in selected_trials" :key="trial_selection.uuid">
-            <TrialSelect :trialSelection="trial_selection"
-                         :selectionIndex="idx"
-                         :publicSessionId="public_session_id"
-                         @trial-selected="captureTrialSelection"
-                         @trial-remove="removeTrialSelection"></TrialSelect>
 
-          </div>
-<!--          <v-btn class="w-100" @click="addTrialSelection">Add trial</v-btn>-->
-          </div>
 <!--          <hr>-->
 
-<!--          <div v-if="session_owned">-->
-<!--            <v-select v-model="session_selected" v-bind:items="sessionsIds" label="Select session" outlined dense-->
-<!--              v-on:change="onSessionSelected"></v-select>-->
-<!--          </div>-->
-<!--          <div v-else>-->
-<!--                <p>-->
-<!--                    This is a public session. To load your sessions, launch the dashboard from your session list.-->
-<!--                </p>-->
-<!--          </div>-->
-<!--          <v-select v-model="trial_selected" v-bind:items="trial_names" label="Select trial" outlined dense-->
-<!--            v-on:change="onTrialSelected"></v-select>-->
 
           <v-select v-bind:items="x_quantities" v-model="x_quantity_selected" label="X Quantity" outlined dense
             v-on:change="onXQuantitySelected"></v-select>
@@ -85,7 +64,7 @@
           Download Chart
         </v-btn>
 
-        <v-btn class="w-100 mt-4" @click="$router.push({ name: 'Session', params: { id: current_session_id } })">
+        <v-btn class="w-100 mt-4" @click="$router.push({ name: 'HelloWorld' })">
           Go to Visualizer
         </v-btn>
 
@@ -171,7 +150,7 @@ import chroma from 'chroma-js';
 import { Line as LineChartGenerator } from 'vue-chartjs/legacy'
 import zoomPlugin from 'chartjs-plugin-zoom';
 import IconTooltip from '@/components/ui/IconTooltip.vue';
-import TrialSelect from '@/components/ui/TrialSelect.vue';
+
 
 import {
   Chart as ChartJS,
@@ -200,28 +179,90 @@ export default {
   components: {
     LineChartGenerator,
     IconTooltip,
-    TrialSelect,
    },
   // This function is executed once the page has been loaded.
-  created: function () {
+  created: async function () {
       // Indicates if the current logged in user owns the session.
       this.session_owned = false
+      this.current_session_id = this.$route.params.id;
 
-      // If the user is logged in, select session from list of sessions.
-      // if(this.loggedIn) {
-      //   // If a session id has been passed as a parameter, set it as the default session.
-      //   this.sessionsIds.forEach(sessionId => {
-      //     if (sessionId.includes(this.$route.params.id)) {
-      //       this.session_selected = sessionId;
-      //       this.onSessionSelected(this.session_selected);
-      //       this.session_owned = true
-      //     }
-      //   });
-      // }
-
+    await this.loadVisualizerData();
   },
   methods: {
     ...mapActions('data', ['loadSession', 'loadSubjects', 'loadExistingSessions']),
+    async loadVisualizerData() {
+      try {
+        const response = await axios.get('/dataForVisualizer/2.mot');
+        this.mot_data = response.data;
+        
+        const lines = this.mot_data.split(/\r?\n/);
+        let headerLines = 0;
+        while (lines[headerLines].trim() !== 'endheader') {
+          headerLines++;
+        }
+        headerLines++; // Skip endheader line
+        
+        const columnNames = lines[headerLines].trim().split('	');
+        this.x_quantities = columnNames;
+        this.y_quantities = columnNames.slice(1);
+        this.x_quantity_selected = this.x_quantities[0];
+      } catch (error) {
+        console.error('Error loading visualizer data:', error);
+        apiError('Failed to load visualizer data');
+      }
+    },
+    drawVisualizerChart() {
+      if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
+        this.chartData = { labels: [], datasets: [] };
+        return;
+      }
+
+      const lines = this.mot_data.split(/\r?\n/);
+      let headerLines = 0;
+      while (lines[headerLines].trim() !== 'endheader') {
+        headerLines++;
+      }
+      headerLines++; // Skip endheader line
+
+      const columnNames = lines[headerLines].trim().split('	');
+      const dataLines = lines.slice(headerLines + 1);
+
+      const chartData = {
+        labels: [],
+        datasets: []
+      };
+
+      const xIndex = columnNames.indexOf(this.x_quantity_selected);
+
+      this.y_quantities_selected.forEach((yQuantity, index) => {
+        const yIndex = columnNames.indexOf(yQuantity);
+        if (yIndex > -1) {
+          const dataset = {
+            label: yQuantity,
+            data: [],
+            borderColor: `hsl(${(index * 40) % 360}, 70%, 50%)`,
+            fill: false,
+            borderWidth: this.chart_line_width,
+            pointRadius: this.chart_point_radius,
+            pointStyle: this.chart_point_style,
+          };
+          chartData.datasets.push(dataset);
+        }
+      });
+
+      dataLines.forEach(line => {
+        const values = line.trim().split('	');
+        if (values.length === columnNames.length) {
+          chartData.labels.push(values[xIndex]);
+          chartData.datasets.forEach(dataset => {
+            const yIndex = columnNames.indexOf(dataset.label);
+            dataset.data.push(parseFloat(values[yIndex]));
+          });
+        }
+      });
+
+      this.chartData = chartData;
+    },
     // Open and close left menu.
     leftMenu() {
       if (document.getElementById("body").classList.contains("left-menu-closed")) {
@@ -249,53 +290,15 @@ export default {
           chart.resetZoom();
         }
     },
-    // Get trials and update trials select when a session is selected.
-    // async onSessionSelected(sessionName) {
-    //   console.log('onSessionSelected', sessionName)
-    //   // Clear previous toast messages
-    //   clearToastMessages()
-    //
-    //   // Get value between parentheses (session id).
-    //   var sessionIdSelected = sessionName.match(/\((.*)\)/);
-    //   if (sessionIdSelected !== null) {
-    //     sessionIdSelected = sessionIdSelected.pop();
-    //
-    //     this.$router.push({ name: 'Dashboard', params: { id: sessionIdSelected } }).catch(err => {})
-    //
-    //     this.current_session_id = sessionIdSelected;
-    //
-    //     await this.loadSubjects()
-    //     await this.loadSession(this.$route.params.id)
-    //     console.log('this.session=', this.session)
-    //     // console.log(this.selected_trials[0])
-    //     let subject = null
-    //     if (this.session.subject) {
-    //       for(let i = 0; i < this.subjects.length; i++) {
-    //         if (this.subjects[i].id === this.session.subject) {
-    //           subject = this.subjects[i]
-    //           break
-    //         }
-    //       }
-    //     }
-    //
-    //     this.selected_trials.push({
-    //       uuid: this.generateUUID(),
-    //       subject_selected: subject,
-    //       session_selected: this.session,
-    //       trial_selected: this.session.trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')[0],
-    //       offset: 0,
-    //     })
-    //
-    //   }
-    // },
+
     onXQuantitySelected(xQuantitySelected) {
       this.x_quantity_selected = xQuantitySelected;
       this.chartOptions.scales.x.title.text = xQuantitySelected;
-      this.drawChart();
+      this.drawVisualizerChart();
     },
     onYQuantitySelected(yQuantitySelected) {
       this.y_quantities_selected = yQuantitySelected;
-      this.drawChart();
+      this.drawVisualizerChart();
     },
     onChartDownload() {
       if (this.chart_download_format_selected === 'png') {
@@ -315,38 +318,7 @@ export default {
     placeholderFunction(selected) {
       console.log(selected);
     },
-    addTrialSelection() {
-      if (!this.loggedIn && this.selected_trials.length > 0) {
-        this.selected_trials.push({
-          uuid: this.generateUUID(),
-          subject_selected: this.selected_trials[0].subject_selected,
-          session_selected: this.selected_trials[0].session_selected,
-          // trial_selected: this.selected_trials[0].session_selected.trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')[0],
-          trial_selected: null,
-        })
-      } else {
-        this.selected_trials.push({
-          uuid: this.generateUUID(),
-          subject_selected: this.selected_trials.length > 0 ? this.selected_trials[0].subject_selected : null,
-          // subject_selected : null,
-          session_selected: null,
-          trial_selected: null,
-        })
-      }
-    },
-    removeTrialSelection(uuid) {
-      this.selected_trials = this.selected_trials.filter(trial => trial.uuid !== uuid)
-      this.loadTrialResults()
-    },
-    captureTrialSelection(trial_selection) {
-      for (let i = 0; i < this.selected_trials.length; i++) {
-        if (this.selected_trials[i].uuid === trial_selection.uuid) {
-          Vue.set(this.selected_trials, i, trial_selection)
-          break
-        }
-      }
-      this.loadTrialResults()
-    },
+
     async loadTrialResults() {
       // Show spinner and hide chart until finished.
       document.getElementById("spinner-layer").style.display = "block";
@@ -409,7 +381,8 @@ export default {
       document.getElementById("spinner-layer").style.display = "None";
       document.getElementById("chart").style.display = "block";
     },
-    async drawChart() {
+async drawChart() {
+      if (!this.mot_data) return;
       // Show spinner and hide chart until finished.
       document.getElementById("spinner-layer").style.display = "block";
       document.getElementById("chart").style.display = "None";
@@ -435,136 +408,73 @@ export default {
       else
           colors = chroma.scale(this.chart_color_scales_selected).correctLightness().gamma(2).cache(false).colors(this.y_quantities_selected.length);
 
-      let dashed_line_styles = [
-          [], [5, 5], [10, 10],
-          [20, 5],
-          [15, 3, 3, 3],
-          [20, 3, 3, 3, 3, 3, 3, 3],
-          [12, 3, 3],
-      ]
+      // Split file in lines.
+      let lines = this.mot_data.split("\n");
 
-      for (let i=0; i < this.selected_trials.length; i++) {
-        if (!this.selected_trials[i].trial_selected) {
-          // Show chart and hide spinner.
-          document.getElementById("spinner-layer").style.display = "None";
-          document.getElementById("chart").style.display = "block";
-          return
+      // Process line by line. First obtain number of rows and number of columns.
+      let nRows = 0;
+      let nColumns = 0;
+      let k = 0;
+      while (lines[k].trim() !== "endheader") {
+        let splitted = lines[k].trim().split("=");
+        if (splitted[0] == "nRows") {
+          nRows = parseInt(splitted[1]);
+        } else if (splitted[0] == "nColumns") {
+          nColumns = parseInt(splitted[1]);
         }
-
-        // let trial_id = this.selected_trials[i].trial_selected.id
-        let ik_results = this.selected_trials[i].trial_selected.results.filter(element => element.tag == "ik_results")
-
-        if (ik_results && ik_results.length > 0) {
-          let data
-          const url = ik_results[0].media
-
-          if (url.startsWith(axios.defaults.baseURL)) {
-            const res = await axios.get(url)
-            data = res.data
-          } else {
-            let axiosClean = axios.create()
-
-            const res = await axiosClean.get(url, {
-              // Deleting Authorization header, because we have one as global Axios
-              // Do not pass out user token to 3rd party sites
-              transformRequest: [(data, headers) => {
-                delete headers.common.Authorization
-                return data
-              }]
-            })
-
-            data = res.data
-          }
-
-          // Split file in lines.
-          let lines = data.split("\n");
-
-          // Process line by line. First obtain number of rows and number of columns.
-          let nRows = 0;
-          let nColumns = 0;
-          let k = 0;
-          while (lines[k].trim() !== "endheader") {
-            let splitted = lines[k].trim().split("=");
-            if (splitted[0] == "nRows") {
-              nRows = parseInt(splitted[1]);
-            } else if (splitted[0] == "nColumns") {
-              nColumns = parseInt(splitted[1]);
-            }
-            k++;
-          }
-
-          // Skip endHeader and possible blank lines.
-          do {
-            k++;
-          } while (lines[k].trim() === "");
-
-          // Get column names.
-          let columnNames = []
-          columnNames.push(this.x_quantity_selected);
-          columnNames.push(...this.y_quantities_selected);
-          k++;
-
-          let dataset = {}
-          let start_index = this.chartData.datasets.length
-          for(j = 0; j < this.y_quantities_selected.length; j++) {
-            dataset = {};
-            dataset["data"] = [];
-            let session_name = this.selected_trials[i].session_selected.meta['sessionName']
-            if ( session_name === null || session_name === undefined ) {
-              session_name = this.selected_trials[i].session_selected.id.split('-')[0]
-            } else {
-              session_name = session_name + ' (' + this.selected_trials[i].session_selected.id.split('-')[0] + ')'
-            }
-
-            dataset["label"] = "" +
-              this.selected_trials[i].subject_selected.name +
-              " : " + session_name +
-              " : " + this.selected_trials[i].trial_selected.name +
-              " : " + this.y_quantities_selected[j];
-            dataset["backgroundColor"] = colors[j];
-            dataset["borderColor"] = colors[j];
-            dataset["borderWidth"] = this.chart_line_width;
-            dataset["borderDash"] = dashed_line_styles[i];
-            // Handle "none" option to remove points
-            dataset["pointStyle"] = this.chart_point_style;
-            if (this.chart_point_style === "none") {
-              dataset["pointRadius"] = 0;
-            } else {
-              dataset["pointRadius"] = this.chart_point_radius;
-            }
-
-            this.chartData.datasets.push(dataset);
-          }
-
-          // Get indexes where requested data is.
-          let indexes = [this.x_quantities.indexOf(this.x_quantity_selected)];
-          var n = 0;
-          for (n = 0; n < this.y_quantities_selected.length; n++) {
-            indexes.push(this.y_quantities.indexOf(this.y_quantities_selected[n]) + 1);
-          }
-
-          // Insert value from each row
-          j = 0;
-          let m = 0;
-          for (j = 0; j < nRows; j++) {
-              var lineArray = lines[j + k].trim().split("\t");
-              // var row = [];
-              for (m = 0; m < indexes.length; m++) {
-                if (m > 0) {
-                  this.chartData.datasets[start_index+m-1]["data"].push(
-                      {
-                        x: parseFloat(lineArray[indexes[0]].trim()) + this.selected_trials[i].offset,
-                        y: parseFloat(lineArray[indexes[m]].trim())
-                      }
-                  );
-                }
-              }
-          }
-
-
-        }
-
+        k++;
       }
+
+      // Skip endHeader and possible blank lines.
+      do {
+        k++;
+      } while (lines[k].trim() === "");
+
+      // Get column names.
+      let allColumnNames = lines[k].trim().split('\t');
+      let columnIndices = {};
+      for(let i=0; i<allColumnNames.length; i++) {
+          columnIndices[allColumnNames[i]] = i;
+      }
+      k++;
+
+      let dataset = {}
+      for(j = 0; j < this.y_quantities_selected.length; j++) {
+        dataset = {};
+        dataset["data"] = [];
+        dataset["label"] = this.y_quantities_selected[j];
+        dataset["backgroundColor"] = colors[j];
+        dataset["borderColor"] = colors[j];
+        dataset["borderWidth"] = this.chart_line_width;
+        dataset["pointStyle"] = this.chart_point_style;
+        dataset["radius"] = this.chart_point_radius;
+        dataset["parsing"] = {
+            "xAxisKey": this.x_quantity_selected,
+            "yAxisKey": this.y_quantities_selected[j]
+        }
+        this.chartData.datasets.push(dataset);
+      }
+
+      // Get data from file.
+      let x_idx = columnIndices[this.x_quantity_selected];
+      let y_indices = this.y_quantities_selected.map(q => columnIndices[q]);
+
+      let chart_data_points = [];
+      for (; k < lines.length; k++) {
+        if (lines[k].trim() === "") {
+          continue;
+        }
+        let splitted = lines[k].trim().split("\t");
+        let data_point = {};
+        data_point[this.x_quantity_selected] = parseFloat(splitted[x_idx]);
+        for(let i=0; i<this.y_quantities_selected.length; i++){
+            data_point[this.y_quantities_selected[i]] = parseFloat(splitted[y_indices[i]]);
+        }
+        chart_data_points.push(data_point);
+      }
+      this.chartData.datasets.forEach(d => {
+          d.data = chart_data_points;
+      })
 
       // Show chart and hide spinner.
       document.getElementById("spinner-layer").style.display = "None";
@@ -581,7 +491,7 @@ export default {
   },
   data() {
     return {
-      selected_trials: [],
+
 
 
       subject_selected: "",
@@ -596,7 +506,7 @@ export default {
       y_quantities_selected: [],
       y_data: [],
       x_quantities: [],
-      x_quantity_selected: [],
+      x_quantity_selected: "",
       x_data: [],
       placeholder: [],
       chart_download_format_selected: 'png',
@@ -704,47 +614,6 @@ export default {
       user_id: state => state.auth.user_id,
     }),
 
-    // sessionsNames() {
-    //   var result_sessions = this.sessions.map(function (obj) {
-    //     // Check that there are valid trials
-    //     var trials = obj['trials'];
-    //     // Filter trials by name and status.
-    //     trials = trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')
-    //
-    //     if (trials.length > 0) {
-    //       return  obj.name + " (" + obj.id + ")";
-    //     } else {
-    //       return "";
-    //     }
-    //   })
-    //   var filtered_sessions = result_sessions.filter(function (value, index, arr) {
-    //     return value !== "";
-    //   });
-    //   return filtered_sessions;
-    //
-    // },
-    // sessionsIds() {
-    //   var result_sessions = this.sessions.map(function (obj) {
-    //     // Check that there are valid trials
-    //     var trials = obj['trials'];
-    //     // Filter trials by name and status.
-    //     trials = trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')
-    //
-    //     if (trials.length > 0) {
-    //       if (obj.name)
-    //         return  obj.name + " (" + obj.id + ")";
-    //       else
-    //         if (obj.meta && obj.meta.subject && obj.meta.subject.id)
-    //             return obj.meta.subject.id + " (" + obj.id + ")";
-    //     } else {
-    //       return "";
-    //     }
-    //   })
-    //   var filtered_sessions = result_sessions.filter(function (value, index, arr) {
-    //     return value !== "";
-    //   });
-    //   return filtered_sessions;
-    // }
   },
   async mounted () {
     // Set session as current session.

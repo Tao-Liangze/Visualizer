@@ -7,7 +7,6 @@
                        @changeTimePosition="captureTimePosition"
                        :block="block"
                        :result="result"
-                       :trialID="trial_selected.id"
                        :timePosition="time_position"
             ></component>
           </div>
@@ -130,9 +129,7 @@
 
 <script>
 import Visualizer from '@/components/ui/Visualizer';
-import { mapState, mapActions } from 'vuex'
-import axios from 'axios'
-import {apiWarning} from "@/util/ErrorMessage";
+import { parseMotionData } from '@/util/skeletonParser.js';
 import { Line as LineChartGenerator } from 'vue-chartjs/legacy'
 import zoomPlugin from 'chartjs-plugin-zoom';
 
@@ -174,163 +171,38 @@ export default {
     },
     data() {
       return {
-        subject_selected: null,
-        session_selected: null,
-        trial_selected: null,
-        y_values: [],
-        selected_y_values: [],
         time_position: 0,
         result: {},
         show_dashboard: false,
-        dialog: null,
-
-        share_subject_id: null,
-        share_token: null,
+        dashboard: {
+          layout: {
+            main: {
+              classes: 'col-12',
+              widgets: [
+                { _id: '1', component: 'LinearChart', classes: 'height-50vh', y_left: ['pelvis_tx', 'pelvis_ty', 'pelvis_tz'], y_right: [] }
+              ]
+            }
+          }
+        }
       }
     },
-    computed: {
-      ...mapState({
-        dashboard: state => state.data.analysis_dashboard,
-        sessions: state => state.data.sessions,
-        session: state => state.data.session,
-        subjects: state => state.data.subjects,
-        loggedIn: state => state.auth.verified
-      }),
-      filteredSessions() {
-        return this.dashboard.data.sessions.filter(session => this.subject_selected && session.subject_id === this.subject_selected.id )
-      },
-      filteredTrials() {
-        return this.dashboard.data.trials.filter(trial => this.session_selected && trial.session_id === this.session_selected.id)
-      },
-      dashboardUrl() {
-        return location.origin + "/analysis-dashboard/" + this.dashboard.id +
-            '?trialId=' + this.trial_selected?.id +
-            '&subjectId=' + this.subject_selected?.id +
-            '&shareToken=' + this.subject_selected?.share_token;
-      },
-
-    },
-    watch: {
-      trial_selected: function (val) {
-        this.show_dashboard = false
-        this.y_values = []
-        this.selected_y_values = []
-        this.time_position = 0
-        this.result = {}
-
-        this.loadResult()
-        if (this.share_subject_id && this.share_token) {
-          history.pushState("", "", location.origin + location.pathname + `?trialId=${val.id}&subjectId=${this.share_subject_id}&shareToken=${this.share_token}`);
-        } else {
-          history.pushState("", "", location.origin + location.pathname + '?trialId=' + val.id);
-        }
-      },
-    },
     async mounted() {
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString)
-        this.share_subject_id = urlParams.get('subjectId')
-        this.share_token = urlParams.get('shareToken')
-
-        await this.loadAnalysisDashboard({id:this.$route.params.id, subject_id:this.share_subject_id, share_token:this.share_token})
-        let given_trial_id = this.$route.query.trialId
-        if (given_trial_id) {
-          let trial_selected = this.dashboard.data.trials.filter(trial => trial.id === given_trial_id)[0]
-          let session_selected = this.dashboard.data.sessions.filter(session => session.id === trial_selected.session_id)[0]
-          let subject_selected = this.dashboard.data.subjects.filter(subject => subject.id === session_selected.subject_id)[0]
-          this.subject_selected = subject_selected
-          this.session_selected = session_selected
-          this.trial_selected = trial_selected
-        }
+        this.loadResult()
     },
     methods: {
-        ...mapActions('data', ['loadSession', 'loadAnalysisDashboard']),
-        leftMenu() {
-          if (document.getElementById("body").classList.contains("left-menu-closed")) {
-            document.getElementById("body").classList.remove("left-menu-closed");
-            document.getElementById("button-left").style.display = "None";
-          } else {
-            document.getElementById("body").classList.add("left-menu-closed");
-            document.getElementById("button-left").style.display = "inline-block";
-          }
-        },
         captureTimePosition(time) {
           this.time_position = time;
         },
-        getResultUrl(trial_id) {
-          for(let i=0; i<this.dashboard.data.results.length; i++) {
-            if (this.dashboard.data.results[i].trial_id === trial_id) {
-              return this.dashboard.data.results[i].media
-            }
+        async loadResult() {
+          try {
+            const response = await fetch('/dataForVisualizer/2.mot');
+            const motContent = await response.text();
+            this.result = parseMotionData(motContent);
+            this.show_dashboard = true;
+          } catch (error) {
+            console.error('Error loading or parsing .mot file:', error);
           }
         },
-        loadResult() {
-          console.log("loadResult")
-          console.log(this.trial_selected)
-          this.result = {}
-          if (this.trial_selected) {
-            let url = this.getResultUrl(this.trial_selected.id)
-            console.log(url)
-            if (url) {
-              const axiosWithoutToken = axios.create();
-              delete axiosWithoutToken.defaults.headers.common['Authorization'];
-              axiosWithoutToken.get(url)
-                .then(response => {
-                  this.result = response.data
-                  this.show_dashboard = true
-                })
-                .catch(error => {
-                  console.error(error);
-                });
-            }
-          }
-        },
-       setSessionPublic() {
-          axios.patch(`/sessions/${this.session_selected.id}/`, {"public": true}).then(response => {
-            this.session_selected.public = true
-          }).catch(error => {
-            console.error(error);
-          });
-       },
-
-        // onSessionSelected(sessionName) {
-        //   console.log(sessionName)
-        //   var sessionIdSelected = sessionName.match(/\((.*)\)/);
-        //   if (sessionIdSelected !== null) {
-        //     sessionIdSelected = sessionIdSelected.pop();
-        //
-        //     this.current_session_id = sessionIdSelected;
-        //     var session = this.sessions.filter(function (obj) {
-        //       if (obj.id === sessionIdSelected) {
-        //         return obj.name;
-        //       }
-        //     });
-        //
-        //     var trials = session[0]['trials'];
-        //     // Filter trials by name.
-        //     trials = trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')
-        //
-        //     if (trials.length > 0) {
-        //       this.trial_ids = []
-        //       this.trial_names = [];
-        //       trials.forEach(element => {
-        //         this.trial_names.push(element.name);
-        //         this.trial_ids.push(element.id)
-        //       });
-        //       this.trial_selected = this.trial_names[0];
-        //
-        //       // Load data from this trial.
-        //       this.onTrialSelected(this.trial_selected);
-        //     } else {
-        //       this.trial_names = []
-        //       apiWarning("There are no dynamic trials associated with this session, thereby nothing to plot.")
-        //     }
-        //   }
-        // },
-        // onTrialSelected(trialName) {
-        //   this.trial_selected = trialName;
-        // }
-
     },
 }
 </script>
@@ -425,7 +297,7 @@ export default {
 }
 
 .dashboard-body {
-  margin-left: 320px;
+  margin-left: 20px;
   margin-right: 10px;
 }
 </style>

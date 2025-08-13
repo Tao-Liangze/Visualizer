@@ -1,434 +1,444 @@
 <template>
-  <v-container fluid>
-    <v-row class="text-center">
-    <v-col
-      cols="2"
-    >
-      <v-row align="center">
-        <v-col>
-          <div>Session {{ session_id }}</div>
-        </v-col>
-      </v-row>
-    </v-col>
-    <v-col
-      cols="8"
-    >
-    <div id="mocap" />
-      <div>
-        Use mouse to control the 3D view.
-      </div>
-    </v-col>
-    <v-col
-      cols="2"
-    >
-    <div id="videos" v-if="trial && state == 'ready'">
-      <video v-for="res in videos"
-      v-bind:key="res.id" autoplay="true"
-      muted playsinline :id="res.id" :src="res.media"
-      controls="true" crossorigin="anonymous"/>
-    </div>
-    </v-col>
+  <v-container fluid class="pa-0 ma-0" style="height: 100vh; overflow: hidden;">
+    <v-row class="no-gutters h-100">
+      <!-- 左侧模型区域，约占80% -->
+      <v-col cols="9" class="h-100">
+        <div id="mocap" class="h-100" />
+      </v-col>
+
+      <!-- 右侧视频和控制区域，约占20% -->
+      <v-col
+        cols="3"
+        class="d-flex flex-column h-100"
+        style="box-sizing: border-box; padding: 2px;"
+      >
+        <!-- 两个视频各占约43%高度，略微减小 -->
+        <video
+          ref="video1"
+          src="/dataForVisualizer/1.mp4"
+          autoplay
+          loop
+          style="height: 43%; object-fit: contain; background: #000; width: 100%; border: 1px solid #222;"
+        />
+        <video
+          ref="video2"
+          src="/dataForVisualizer/2.mp4"
+          autoplay
+          loop
+          style="height: 43%; object-fit: contain; background: #000; width: 100%; border: 1px solid #222; margin-top: 4px;"
+        />
+
+        <!-- 控制区，水平居中，紧贴视频下方 -->
+        <div
+          class="d-flex flex-column align-center"
+          style="margin-top: 6px; height: 12%;"
+        >
+          <!-- 进度条，使用dense减小高度 -->
+          <v-slider
+            v-model="progress"
+            step="0.001"
+            :max="videoDuration"
+            dense
+            style="width: 100%;"
+            thumb-label
+            @change="onProgressChange"
+          />
+
+          <!-- 两个按钮，缩小宽度，水平排列 -->
+          <div
+            class="d-flex justify-center"
+            style="gap: 8px; margin-top: 6px; width: 100%;"
+          >
+            <v-btn
+              @click="changePlaybackSpeed"
+              color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
+            >
+              {{ playbackSpeed }}x
+            </v-btn>
+            <v-btn
+              @click="togglePlayPause"
+              color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
+            >
+              {{ isPlaying ? '暂停' : '播放' }}
+            </v-btn>
+            <v-btn
+              @click="goToDashboard"
+              color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
+            >
+              曲线
+            </v-btn>
+          </div>
+        </div>
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
+
+
+
 <script>
 import * as THREE from 'three'
-import * as THREE_OC from '@/orbitControls'
-import axios from 'axios'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-
-//  console.log(frames)
-/*
-0 Neck
-1 RShoulder
-2 RElbow
-3 RWrist
-4 LShoulder
-5 LElbow
-6 LWrist
-7 midHip
-8 RHip
-9 RKnee
-10 RAnkle
-11 LHip
-12 LKnee
-13 LAnkle
-14 LBigToe
-15 LSmallToe
-16 LHeel
-17 RBigToe
-18 RSmallToe
-19 RHeel
-
-20 "C7_study"
-
-21 "R_shoulder_study"
-
-22 "L_shoulder_study"
-
-23 "R.ASIS_study"
-24 "L.ASIS_study"
-25 "R.PSIS_study"
-26 "L.PSIS_study"
-27 "R_knee_study"
-28 "L_knee_study"
-29 "R_mknee_study"
-30 "L_mknee_study"
-31 "R_ankle_study"
-32 "L_ankle_study"
-33 "R_mankle_study"
-34 "L_mankle_study"
-35 "R_calc_study"
-36 "L_calc_study"
-37 "R_toe_study"
-38 "L_toe_study"
-39 "R_5meta_study"
-40 "L_5meta_study"
-41 "R_lelbow_study"
-42 "L_lelbow_study"
-43 "R_melbow_study"
-44 "L_melbow_study"
-45 "R_lwrist_study"
-46 "L_lwrist_study"
-47 "R_mwrist_study"
-48 "L_mwrist_study"
-49 "R_thigh1_study"
-50 "R_thigh2_study"
-51 "R_thigh3_study"
-52 "L_thigh1_study"
-53 "L_thigh2_study"
-54 "L_thigh3_study"
-55 "R_sh1_study"
-56 "R_sh2_study"
-57 "R_sh3_study"
-58 "L_sh1_study"
-59 "L_sh2_study"
-60 "L_sh3_study"
-61 "RHJC_study"
-62 "LHJC_study"
-*/
-let openpose_bones = [
-    [20, 21],
-    [20, 22],
-    [21, 43],
-    [22, 44],
-    [43, 47],
-    [44, 48],
-    [20, 25],
-    [20, 26],
-    
-//    [25, 23],
-//    [26, 24],
-    
-    [25, 29],
-    [26, 30],
-    [29, 33],
-    [30, 34],
-    [33, 37],
-    [34, 38],
-]
-
-var a0 = 0;
-var a1 = 1;
-var a2 = 2;
-
-const objLoader = new OBJLoader();
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 export default {
-  name: 'HelloWorld',
+  name: 'SkeletonViewer',
   data() {
     return {
       camera: null,
       scene: null,
       renderer: null,
-      mesh: null,
-      processor: null,
-      session: null,
-      state: "ready",
-      server_state: "ready",
-      heartbeat: null,
-      status_url: "/",
-      bose_bones: null,
-      trial: null,
-      frames: [],
-      videos: [],
-      synced: false,
-      trial_name: null,
-      subject_id: null,
-      subject_mass: null,
-      subject_height: null,
-      subject_gender: null,
-      cb_square: 60,
-      cb_cols: 11,
-      cb_rows: 8,
-      cb_placement: "backWall",
-      animation_json: {},
+      controls: null,
+      animation_json: null,
+      animationState: null,
+      isPlaying: false,
       meshes: {},
-    }
-  },
-  beforeDestroy: function () {
-    window.removeEventListener('resize', this.onResize)
-  },
-  computed: {
-    trial_url: function(){
-      if (this.trial!=null){
-        return location.protocol+"//"+location.host+"/trial/"+this.trial.id+"/"
-      }
-      return ""
-    },
-    session_id: function(){
-      if (this.ssesion)
-        return this.session.id
-      return ""
-    },
-    trial_details_url: function(){
-      if (this.trial!=null){
-        return axios.defaults.baseURL+"trials/"+this.trial.id+"/"
-      }
-      return ""
-    }
+      trajectory: null,
+      frameRate: 30, // 骨骼动画的帧率
+      progress: 0, // 视频进度
+      videoDuration: 0, // 视频总时长
+      playbackSpeed: 1, // 当前倍速
+      videos : [],
+      animationId: 0, // 当前动画帧
+    };
   },
   methods: {
-    loadResults: function(trial_url){
-      axios.get(trial_url)
-        .then(response => {
-          console.log(response)
-          this.synced = false
-          this.trial = response.data
-
-          this.videos = response.data.results.filter(element => element.tag == "video-sync")
-          // load JSON
-          let json_file = response.data.results.filter(element => element.tag == "IK-json" )[0].media
-          console.log(json_file)
-          return axios.get(json_file)
-        })
-        .then(response => {
-          console.log(response.data)
-          this.frames = response.data.data
-          // add videos
-
-          this.show3d()
-          this.animate();
-
-          this.state = "ready"
-        })
+    goToDashboard() {
+      this.$router.push({ name: 'Dashboard', params: { id: '' } });
     },
-    init: function() {
-    },
-    setup3d: function(){
-      let container = document.getElementById('mocap');
-      let ratio = container.clientWidth/window.innerHeight
-      this.camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 125);
-      this.camera.position.x = 10;
-      this.camera.position.y = 5;
-      
-      this.scene = new THREE.Scene();
-      this.renderer = new THREE.WebGLRenderer({antialias: true});
-      this.onResize();
-      container.appendChild(this.renderer.domElement);
-      this.controls = new THREE_OC.OrbitControls( this.camera, this.renderer.domElement );
-    },
-    show3d: function(){
+    // async togglePlayPause() {
+    //   const videos = [this.$refs.video1, this.$refs.video2];
+    //   if (this.isPlaying) {
+    //     // 暂停所有视频
+    //     videos.forEach(v => v.pause());
+    //     this.animationState.isPlaying = false;
+    //     console.log("暂停视频和动画");
+    //   } else {
+    //     // 使用视频1的播放进度作为参考，设置两个视频的时间一致
+    //     const masterTime = this.$refs.video1.currentTime;
+    //     try {
+    //       // 设置视频1和视频2的同步播放
+    //       await Promise.all(videos.map(video => {
+    //         video.currentTime = masterTime;
+    //         return video.play();
+    //       }));
+    //       this.animationState.isPlaying = true;
+    //     } catch (e) {
+    //       console.error('视频播放失败:', e);
+    //     }
+    //     console.log("开始同步播放视频和动画");
+    //   }
+    //   this.isPlaying = !this.isPlaying;
+    // },
+    // 设置视频时长
+    setVideoDuration() {
+      this.videos = [this.$refs.video1, this.$refs.video2];
 
-  {
-    const planeSize = 5;
+      const waitForMetadata = video =>
+        new Promise(resolve => {
+          if (video.readyState >= 1) {
+            resolve(); // 元数据已可用
+          } else {
+            video.addEventListener("loadedmetadata", resolve, { once: true });
+          }
+        });
 
-    const loader = new THREE.TextureLoader();
-    const texture = loader.load('https://threejsfundamentals.org/threejs/resources/images/checker.png');
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.magFilter = THREE.NearestFilter;
-    const repeats = planeSize / 2;
-    texture.repeat.set(repeats, repeats);
-
-    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
-    const planeMat = new THREE.MeshPhongMaterial({
-      map: texture,
-      side: THREE.DoubleSide,
-    });
-    const mesh = new THREE.Mesh(planeGeo, planeMat);
-    mesh.rotation.x = Math.PI * -.5;
-    mesh.position.y = .0
-    this.scene.add(mesh);
-  }
-
-  {
-    const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xB97A20;  // brownish orange
-    const intensity = 1;
-    const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
-    this.scene.add(light);
-  }
-
-  {
-    const color = 0xFFFFFF;
-    const intensity = 1;
-    const light = new THREE.DirectionalLight(color, intensity);
-    light.position.set(0, 10, 0);
-    light.target.position.set(-5, 0, 0);
-    this.scene.add(light);
-    this.scene.add(light.target);
-  }
-  let data = fetch("https://mc-mocap-video-storage.s3-us-west-2.amazonaws.com/eae549fc-2694-4dad-9ae2-f5db462a289b-dropJump.json") //https://mc-mocap-video-storage.s3.us-west-2.amazonaws.com/visualizerTransforms.json")
-  .then(response => response.json())
-  .then(json => {
-    console.log(json)
-    this.animation_json = json
-    for (let body in json.bodies){
-      json.bodies[body].attachedGeometries.forEach((geom) => {
-        let path = 'https://mc-mocap-video-storage.s3.us-west-2.amazonaws.com/geometries/' + geom.substr(0, geom.length-4) + ".obj";
-        objLoader.load(path, (root) => {
-          this.meshes[body+geom] = root;
-          this.scene.add(root);
-        })
-      })
-    }
-  });
-
-//      })
-    },
-    syncVideos: function() {
-      if (this.synced || this.trial == null || this.videos.length == 0)
-        return
-      let self = this;
-      let vid0 = document.getElementById(this.videos[0].id)
-      
-      vid0.addEventListener('ended', function () {
-        
-        self.videos.forEach(video => {
-          let vid_element = document.getElementById(video.id);
-          vid_element.currentTime = 0;
-          vid_element.play();
-        })
+      Promise.all(this.videos.map(waitForMetadata)).then(() => {
+        this.videoDuration = this.videos[0].duration;
+        console.log("✅ 视频总时长:", this.videoDuration);
       });
-      this.videos.forEach(video => {
-        let vid_element = document.getElementById(video.id);
-        vid_element.playbackRate = 1
-      })
-      this.synced = true
     },
-    onResize: function() {
-      let container = document.getElementById('mocap');
+    changePlaybackSpeed() {
+      // 切换倍速：1x, 1.5x, 2x
+      this.playbackSpeed = this.playbackSpeed === 2 ? 1 : this.playbackSpeed + 0.5;
+      this.$refs.video1.playbackRate = this.playbackSpeed;
+      this.$refs.video2.playbackRate = this.playbackSpeed;
+      console.log(`设置倍速为 ${this.playbackSpeed}x`);
+    },
+    syncProgress() {
+      //const videos = [this.$refs.video1, this.$refs.video2];
+      const currentTime = this.videos[0].currentTime; // 使用 video1 的播放时间作为参考
+      this.progress = Number(currentTime.toFixed(2));
+      // 如果视频播放结束，重置进度
+      if (currentTime >= this.videoDuration) {
+        this.progress = 0; // 进度条重置
+      }
+  },
+
+    async togglePlayPause() {
+      const videos = [this.$refs.video1, this.$refs.video2];
+      if (this.isPlaying) {
+        videos.forEach(v => v.pause());
+        this.animationState.isPlaying = false;
+        console.log("暂停视频和动画");
+      } else {
+        const masterTime = this.$refs.video1.currentTime;
+        try {
+          // 设置视频1和视频2的同步播放
+          await Promise.all(videos.map(video => {
+            video.currentTime = masterTime;
+            return video.play();
+          }));
+          this.animationState.isPlaying = true;
+        } catch (e) {
+          console.error('视频播放失败:', e);
+        }
+        console.log("开始同步播放视频和动画");
+      }
+      this.isPlaying = !this.isPlaying;
+    },
+
+    // 进度条拖动时，手动控制视频播放位置
+    onProgressChange(value) {
+      for (const video of this.videos) {
+        video.currentTime = value;
+      }
+      //this.updateFrame();
+      if(!this.isPlaying){
+        this.videos.forEach(v => v.pause());
+        //this.updateFrame();
+        this.animationState.isPlaying = false;    
+        
+      }
+      this.updateFrame(); 
+    },
+
+    async setup3D() {
+      const container = document.getElementById('mocap');
+      this.renderer = new THREE.WebGLRenderer({ antialias: true });
+      this.renderer.setSize(container.clientWidth, window.innerHeight);
+      container.appendChild(this.renderer.domElement);
+
+      this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+      this.camera.position.set(5, 4, 3); // Increased distance for wider view
+
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(0x000000); // Black background
+
+      const light = new THREE.HemisphereLight(0xffffff, 0x808080, 0.8);
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.target.set(0, 1.5, 0); // Target the upper body/face area
+      this.controls.update();
+
+      // 灰黑网格地面
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 2;
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#7b878f';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#baccd6';
+      context.fillRect(0, 0, 1, 1);
+      context.fillRect(1, 1, 1, 1);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.magFilter = THREE.NearestFilter;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(10, 10); // Increase grid cells, making each cell smaller
+
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 10), // Keep ground smaller
+        new THREE.MeshPhongMaterial({ map: texture, side: THREE.DoubleSide })
+      );
+      plane.rotation.x = -Math.PI / 2;
+      this.scene.add(plane);
+
+      // 光照调整
+      this.scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.8));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      dirLight.position.set(-3, 10, -10);
+      this.scene.add(dirLight);
+
+      window.addEventListener('resize', this.onResize);
+    },
+
+    onResize() {
+      const container = document.getElementById('mocap');
+      this.camera.aspect = container.clientWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
       this.renderer.setSize(container.clientWidth, window.innerHeight);
     },
-    timerCallback: function() {
-      this.computeFrame();
-      let self = this;
-      setTimeout(function () {
-          self.timerCallback();
-        }, 0);
+
+    parseOsimSkeleton(osimText) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(osimText, "text/xml");
+      const bones = [];
+      const joints = [];
+
+      const bodies = xml.querySelectorAll("Body");
+      bodies.forEach(body => {
+        const name = body.getAttribute("name");
+        bones.push({ name });
+      });
+
+      const jointNodes = xml.querySelectorAll("Joint");
+      jointNodes.forEach(joint => {
+        const name = joint.getAttribute("name");
+        const parent = joint.querySelector("parent_body")?.textContent;
+        const child = joint.querySelector("child_body")?.textContent;
+        if (parent && child) {
+          joints.push({ name, parent, child });
+        }
+      });
+
+      return { bones, joints };
     },
 
-    computeFrame: function() {
-    },
-
-    goToTime: function(time) {
-      this.videos.forEach(video => {
-        let vid_element = document.getElementById(video.id);
-        vid_element.currentTime = time
-      })
-    },
-    animate: function() {
-      if (this.trial == null){
-        return
+    parseMotionData(motText) {
+      const lines = motText.trim().split('\n');
+      let startIdx = 0;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('endheader')) {
+          startIdx = i + 1;
+          break;
+        }
       }
-        requestAnimationFrame(this.animate);
-        let vid0 = document.getElementById(this.videos[0].id.toString());
-        if (vid0 == null || vid0 == undefined){
-          return
+      return lines.slice(startIdx).map(line =>
+        line.trim().split(/\s+/).map(parseFloat)
+      );
+    },
+
+    async loadAndBuildScene() {
+      const [osimText, motText, transformJson] = await Promise.all([
+        fetch('/dataForVisualizer/LaiUhlrich2022_scaled.osim').then(r => r.text()),
+        fetch('/dataForVisualizer/2.mot').then(r => r.text()),
+        fetch('/dataForVisualizer/2.json').then(r => r.json())
+      ]);
+
+      const skeleton = this.parseOsimSkeleton(osimText);
+      const motionFrames = this.parseMotionData(motText);
+      this.animation_json = transformJson;
+
+      this.animationState = {
+        skeleton,
+        motionFrames,
+        currentFrame: 0,
+        frameRate: 60,
+        isPlaying: true
+      };
+
+      const group = new THREE.Group();
+      this.scene.add(group);
+      this.meshes.skeleton = group;
+
+      const loader = new OBJLoader();
+
+      for (const bone of skeleton.bones) {
+        const boneGroup = new THREE.Group();
+        boneGroup.name = bone.name;
+        group.add(boneGroup);
+        this.meshes[bone.name] = boneGroup;
+
+        const geoms = this.animation_json.bodies[bone.name]?.attachedGeometries || [];
+        for (const geom of geoms) {
+          const objPath = `/dataForVisualizer/geometry-obj/${geom.replace('.vtp', '.obj')}`;
+          loader.load(objPath, (obj) => {
+            obj.name = bone.name + geom;
+
+            // 强制添加默认材质
+            obj.traverse((child) => {
+              if (child.isMesh) {
+                child.material = new THREE.MeshLambertMaterial({
+                  color: 0xffffff, // Ensure skeleton is white
+                });
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            this.meshes[bone.name + geom] = obj;
+            boneGroup.add(obj);
+          });
         }
+      }
+    },
 
-        let cframe = (Math.floor(vid0.currentTime*60)) % this.frames.length
-//  cframe = cframe % 70
+    updateFrame() {
+      if (!this.animationState?.isPlaying) return;
 
-    let json = this.animation_json;
-    for (let body in json.bodies){
-      json.bodies[body].attachedGeometries.forEach((geom) => {
-        this.meshes[body+geom].position.set(
-          json.bodies[body].translation[cframe][0],
-          json.bodies[body].translation[cframe][1],
-          json.bodies[body].translation[cframe][2])
-        var euler = new THREE.Euler(
-          json.bodies[body].rotation[cframe][0],
-          json.bodies[body].rotation[cframe][1],
-          json.bodies[body].rotation[cframe][2]);
-  this.meshes[body+geom].quaternion.setFromEuler(euler)
-      })
-    }
-        
+      const currentTimeInSeconds = this.$refs.video1.currentTime; // 从video1获取当前时间
+      const frameIdx = Math.floor(currentTimeInSeconds * this.frameRate); // 根据视频时间计算骨骼动画帧
 
-/*        for (let i = 0; i < this.pose_bones.length; i++) {
-          let from = openpose_bones[i][0]
-          let to = openpose_bones[i][1]
+      this.animationState.currentFrame = frameIdx % this.animationState.motionFrames.length;
 
-          var vfrom = new THREE.Vector3(this.frames[cframe][from*3 + a0],
-            this.frames[cframe][from*3 + a1],
-            this.frames[cframe][from*3 + a2]);
+      for (const body in this.animation_json.bodies) {
+        const data = this.animation_json.bodies[body];
+        const geoms = data.attachedGeometries || [];
 
-          var vto = new THREE.Vector3(this.frames[cframe][to*3 + a0],
-            this.frames[cframe][to*3 + a1],
-            this.frames[cframe][to*3 + a2]);
+        for (const geom of geoms) {
+          const mesh = this.meshes[body + geom];
+          if (!mesh) continue;
 
-          var axis = new THREE.Vector3(0, 1, 0);
-          let midpoint = vto.clone().add(vfrom.clone());
-          this.pose_bones[i].position.copy(midpoint);
+          const pos = data.translation[frameIdx];
+          const rot = data.rotation[frameIdx];
 
-          if (openpose_bones[i][0] == 0){
-//            this.pose_spheres[0].position.copy(vfrom);
-          }
-
+          mesh.position.set(pos[0], pos[1], pos[2]);
+          mesh.setRotationFromEuler(new THREE.Euler(rot[0], rot[1], rot[2]));
         }
-*/
+      }
+    },
 
-        this.renderer.render(this.scene, this.camera);
-        this.syncVideos();
-    }
+    animate() {
+      requestAnimationFrame(this.animate);
+      this.updateFrame();
+      this.renderer.render(this.scene, this.camera);
+      //this.animationId = requestAnimationFrame(this.animate);
+    },
   },
-  mounted: function() {
-      this.init();
-      this.setup3d()
 
-      if (this.$route.params.trial_id != null){
-        let trial_id = this.$route.params.trial_id
-        this.loadResults("/trials/" + trial_id + "/")
-        console.log(trial_id)
+    async mounted() {
+      await this.setup3D();
+      await this.loadAndBuildScene();
+      // 设置视频时长
+      this.setVideoDuration();
+      
+      // 监听 video1 和 video2 的时间更新
+      for (const video of this.videos) {
+        video.addEventListener('timeupdate', this.syncProgress);
       }
+      this.animate();
+    },
 
-      window.addEventListener('resize', this.onResize)
-  }
-}
+  beforeDestroy() {
+    window.removeEventListener('resize', this.onResize);
+
+     for (const video of this.videos) {
+      video.pause();
+      video.removeEventListener('timeupdate', this.syncProgress);
+    }
+    this.scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(m => m.dispose());
+        } else {
+          obj.material.dispose();
+        }
+      }
+    });
+
+    // 释放渲染器
+    this.renderer.dispose();
+  },
+};
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-  #mocap {
-    border: 2px solid #222222;
-    width: 100%;
-    height: 100%;
-    margin: 0 auto;
-  }
-  #videos {
-  }
-  #videos video {
-    width: 100%;
-  }
-  #cameras canvas {
-    padding: 5px;
-    padding-top: 10px;
-  }
-  #videos video {
-    padding: 5px;
-    padding-top: 10px;
-  }
-  input, option, select {
-      border: 1px #ffffff solid;
-      color: #ffffff;
-      margin: 0.1em 0.5em;
-      width: 5em;
-  }
-  option {
-      background-color: #000000;
-  }
-  
+#mocap {
+  border: 2px solid #222;
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  background: #1e1e1e;
+}
+
+video {
+  width: 100%;
+  border: 2px solid #222;
+}
 </style>
