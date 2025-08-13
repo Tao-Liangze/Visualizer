@@ -527,10 +527,10 @@ async drawChart() {
           data: [],
         }]
       },
-      chart_line_width: 5,
+      chart_line_width: 0,
       chart_point_style_options: ["none", "circle", "cross", "crossRot", "dash", "line", "rect", "rectRounded", "rectRot", "star", "triangle"],
-      chart_point_style: 'none',
-      chart_point_radius: 12,
+      chart_point_style: 'line',
+      chart_point_radius: 6,
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -538,7 +538,7 @@ async drawChart() {
           x: {
             title: {
               display: true,
-              text: 'X axis title',
+              text: '时间 (s)',
               font: {
                 size: 20
               },
@@ -548,7 +548,7 @@ async drawChart() {
           y: {
             title: {
               display: true,
-              text: 'Y axis title',
+              text: 'Y轴标题',
               font: {
                 size: 20
               },
@@ -559,7 +559,7 @@ async drawChart() {
         plugins: {
           title: {
             display: true,
-            text: 'Chart',
+            text: '骨骼模型关节自由度',
             font: {
               size: 35
             },
