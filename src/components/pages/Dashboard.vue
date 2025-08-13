@@ -100,19 +100,19 @@
 
           <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number" @input="drawChart"></v-text-field>
 
-          <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="Point Style"
+          <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="点风格"
             outlined dense v-on:change="drawChart"></v-select>
 
-          <v-text-field v-model="chart_point_radius" label="Point Size" outlined dense type="number" @input="drawChart"></v-text-field>
+          <v-text-field v-model="chart_point_radius" label="点大小" outlined dense type="number" @input="drawChart"></v-text-field>
 
-          <v-select v-model="chartOptions.plugins.legend.position" v-bind:items="chart_legend_position" label="Legend Position"
+          <v-select v-model="chartOptions.plugins.legend.position" v-bind:items="chart_legend_position" label="图例位置"
             outlined dense v-on:change="placeholderFunction"></v-select>
 
           <v-select v-model="chartOptions.plugins.legend.align" v-bind:items="chart_legend_alignment"
-            label="Legend Alignment" outlined dense v-on:change="placeholderFunction"></v-select>
+            label="图例对齐" outlined dense v-on:change="placeholderFunction"></v-select>
 
           <v-select v-model="chart_color_scales_selected" v-bind:items="chart_color_scales_options"
-            label="Color Scale" outlined dense v-on:change="drawChart"></v-select>
+            label="配色" outlined dense v-on:change="drawChart"></v-select>
 
           <v-btn class="w-100" @click="onResetZoom">
             Reset Zoom
