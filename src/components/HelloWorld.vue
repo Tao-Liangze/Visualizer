@@ -74,6 +74,61 @@
         </div>
       </v-col>
     </v-row>
+    
+    <!-- 悬浮按键和输入框区域 -->
+    <div class="data-input-panel" :class="{ 'panel-collapsed': isPanelCollapsed }">
+      <!-- 悬浮按键 -->
+      <v-btn 
+        class="toggle-button"
+        @click="togglePanel"
+        color="white"
+        fab
+        small
+        dark
+        style="width: 60px; height: 60px;"
+      >
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <span style="color: black; font-size: 14px; margin-bottom: 4px;">文件</span>
+          <v-icon style="color: black; font-size: 18px;">{{ isPanelCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left' }}</v-icon>
+        </div>
+      </v-btn>
+      
+      <!-- 输入框区域 -->
+      <div v-show="!isPanelCollapsed" class="input-fields">
+        <div class="input-group">
+          <v-text-field
+            v-model="subject_id"
+            @input="saveSubjectId"
+            label="Subject ID"
+            outlined
+            dense
+            hide-details
+            class="input-field"
+          ></v-text-field>
+        </div>
+        <div class="input-group">
+          <v-text-field
+            v-model="trial_id"
+            @input="saveTrialId"
+            label="Trial ID"
+            outlined
+            dense
+            hide-details
+            class="input-field"
+          ></v-text-field>
+        </div>
+        <v-btn
+          @click="loadData"
+          color="primary"
+          class="load-button"
+          small
+          depressed
+          style="width: 100%;"
+        >
+          <span style="color: black; font-size: 14px;">导入</span>
+        </v-btn>
+      </div>
+    </div>
   </v-container>
 </template>
 
@@ -104,36 +159,40 @@ export default {
       playbackSpeed: 1, // 当前倍速
       videos : [],
       animationId: 0, // 当前动画帧
+      
+      // 添加Subject ID和Trial ID相关变量，从localStorage中获取默认值
+      subject_id: localStorage.getItem('subject_id') || '',
+      trial_id: localStorage.getItem('trial_id') || '',
+      isPanelCollapsed: localStorage.getItem('isPanelCollapsed') === 'true' || false, // 控制面板展开/收起状态
     };
   },
   methods: {
     goToDashboard() {
       this.$router.push({ name: 'Dashboard', params: { id: '' } });
     },
-    // async togglePlayPause() {
-    //   const videos = [this.$refs.video1, this.$refs.video2];
-    //   if (this.isPlaying) {
-    //     // 暂停所有视频
-    //     videos.forEach(v => v.pause());
-    //     this.animationState.isPlaying = false;
-    //     console.log("暂停视频和动画");
-    //   } else {
-    //     // 使用视频1的播放进度作为参考，设置两个视频的时间一致
-    //     const masterTime = this.$refs.video1.currentTime;
-    //     try {
-    //       // 设置视频1和视频2的同步播放
-    //       await Promise.all(videos.map(video => {
-    //         video.currentTime = masterTime;
-    //         return video.play();
-    //       }));
-    //       this.animationState.isPlaying = true;
-    //     } catch (e) {
-    //       console.error('视频播放失败:', e);
-    //     }
-    //     console.log("开始同步播放视频和动画");
-    //   }
-    //   this.isPlaying = !this.isPlaying;
-    // },
+    // 切换面板展开/收起状态
+    togglePanel() {
+      this.isPanelCollapsed = !this.isPanelCollapsed;
+      localStorage.setItem('isPanelCollapsed', this.isPanelCollapsed);
+    },
+    
+    // 保存Subject ID到localStorage
+    saveSubjectId(value) {
+      localStorage.setItem('subject_id', value);
+    },
+    
+    // 保存Trial ID到localStorage
+    saveTrialId(value) {
+      localStorage.setItem('trial_id', value);
+    },
+    
+    // 加载数据的方法（待实现具体逻辑）
+    loadData() {
+      console.log('Subject ID:', this.subject_id);
+      console.log('Trial ID:', this.trial_id);
+      // 具体的文件加载逻辑将在后续实现
+    },
+    
     // 设置视频时长
     setVideoDuration() {
       this.videos = [this.$refs.video1, this.$refs.video2];
@@ -440,5 +499,48 @@ export default {
 video {
   width: 100%;
   border: 2px solid #222;
+}
+
+/* 数据输入面板样式 */
+.data-input-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(66, 66, 66, 0.9);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  z-index: 10;
+  min-width: 250px;
+}
+
+.panel-collapsed {
+  background: rgba(66, 66, 66, 0.7);
+  min-width: auto;
+  padding: 8px;
+}
+
+.toggle-button {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(50%, -50%);
+  z-index: 11;
+}
+
+.input-fields {
+  margin-right: 20px;
+}
+
+.input-group {
+  margin-bottom: 12px;
+}
+
+.input-field {
+  font-size: 14px;
+}
+
+.load-button {
+  width: 100%;
 }
 </style>
