@@ -100,10 +100,8 @@
 
           <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number" @input="drawChart"></v-text-field>
 
-          <v-select v-model="chart_point_style" v-bind:items="chart_point_style_options" label="曲线风格"
+          <v-select v-model="chart_smoothing" v-bind:items="chart_smoothing_options" label="数据平滑"
             outlined dense v-on:change="drawChart"></v-select>
-
-          
 
           <v-select v-model="chartOptions.plugins.legend.position" v-bind:items="chart_legend_position" label="图例位置"
             outlined dense v-on:change="placeholderFunction"></v-select>
@@ -111,8 +109,6 @@
           <v-select v-model="chartOptions.plugins.legend.align" v-bind:items="chart_legend_alignment"
             label="图例对齐" outlined dense v-on:change="placeholderFunction"></v-select>
 
-          <v-select v-model="chart_color_scales_selected" v-bind:items="chart_color_scales_options"
-            label="配色" outlined dense v-on:change="drawChart"></v-select>
 
           <v-btn class="w-100" @click="onResetZoom">
             Reset Zoom
@@ -217,7 +213,6 @@ export default {
       return;
       /* 以下代码已弃用
       if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
-        this.isLoading = true;
         this.chartData = { labels: [], datasets: [] };
         return;
       }
@@ -267,7 +262,6 @@ export default {
       });
 
       this.chartData = chartData;
-      this.isLoading = false;
     */},
     // Open and close left menu.
     leftMenu() {
@@ -387,7 +381,44 @@ export default {
       document.getElementById("spinner-layer").style.display = "None";
       document.getElementById("chart").style.display = "block";
     },
-async drawChart() {
+    
+    // 数据平滑处理函数
+    applySmoothing(dataPoints) {
+      if (this.chart_smoothing <= 0 || dataPoints.length <= this.chart_smoothing) {
+        return dataPoints;
+      }
+      
+      // 创建新的数据点数组
+      const smoothedDataPoints = [];
+      
+      // 对每个Y轴变量进行平滑处理
+      for (let i = 0; i < dataPoints.length; i++) {
+        const smoothedPoint = { ...dataPoints[i] };
+        
+        // 对每个选定的Y轴变量应用移动平均
+        for (const yVar of this.y_quantities_selected) {
+          let sum = 0;
+          let count = 0;
+          
+          // 计算移动平均窗口内的值
+          for (let j = Math.max(0, i - this.chart_smoothing); 
+               j <= Math.min(dataPoints.length - 1, i + this.chart_smoothing); 
+               j++) {
+            sum += dataPoints[j][yVar];
+            count++;
+          }
+          
+          // 设置平滑后的值
+          smoothedPoint[yVar] = sum / count;
+        }
+        
+        smoothedDataPoints.push(smoothedPoint);
+      }
+      
+      return smoothedDataPoints;
+    },
+    
+    async drawChart() {
       if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
         this.isLoading = true;
         this.chartData = { labels: [], datasets: [] };
@@ -498,6 +529,12 @@ async drawChart() {
         }
         chart_data_points.push(data_point);
       }
+      
+      // 应用数据平滑处理
+      if (this.chart_smoothing > 0) {
+        chart_data_points = this.applySmoothing(chart_data_points);
+      }
+      
       this.chartData.datasets.forEach(d => {
           d.data = chart_data_points;
       })
@@ -554,10 +591,18 @@ async drawChart() {
           data: [],
         }]
       },
-      chart_line_width: 2,
+      chart_line_width: 3,
       chart_point_style_options: ["none", "circle", "cross", "crossRot", "dash", "line", "rect", "rectRounded", "rectRot", "star", "triangle"],
       // 点风格选项的显示名称，"line"表示连续曲线
       chart_point_style: 'line',
+      // 数据平滑选项
+      chart_smoothing: 0, // 默认不平滑
+      chart_smoothing_options: [
+        { text: '无平滑', value: 0 },
+        { text: '轻度平滑', value: 5 },
+        { text: '中度平滑', value: 10 },
+        { text: '重度平滑', value: 20 }
+      ],
       // 保留但不再使用的点大小属性
       chart_point_radius: 6,
       chartOptions: {
