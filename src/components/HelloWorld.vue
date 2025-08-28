@@ -7,124 +7,60 @@
       </v-col>
 
       <!-- 右侧视频和控制区域，约占20% -->
-      <v-col
-        cols="3"
-        class="d-flex flex-column h-100"
-        style="box-sizing: border-box; padding: 2px;"
-      >
+      <v-col cols="3" class="d-flex flex-column h-100" style="box-sizing: border-box; padding: 2px;">
         <!-- 两个视频各占约43%高度，略微减小 -->
-        <video
-          ref="video1"
-          src="/dataForVisualizer/1.mp4"
-          autoplay
-          loop
-          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555;"
-        />
-        <video
-          ref="video2"
-          src="/dataForVisualizer/2.mp4"
-          autoplay
-          loop
-          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555; margin-top: 4px;"
-        />
+        <video ref="video1" :src="video1Src" autoplay loop
+          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555;" />
+        <video ref="video2" :src="video2Src" autoplay loop
+          style="height: 43%; object-fit: contain; background: #424242; width: 100%; border: 1px solid #555; margin-top: 4px;" />
 
         <!-- 控制区，水平居中，紧贴视频下方 -->
-        <div
-          class="d-flex flex-column align-center"
-          style="margin-top: 6px; height: 12%;"
-        >
+        <div class="d-flex flex-column align-center" style="margin-top: 6px; height: 12%;">
           <!-- 进度条，使用dense减小高度 -->
-          <v-slider
-            v-model="progress"
-            step="0.001"
-            :max="videoDuration"
-            dense
-            style="width: 100%;"
-            thumb-label
-            @change="onProgressChange"
-          />
+          <v-slider v-model="progress" step="0.001" :max="videoDuration" dense style="width: 100%;" thumb-label
+            @change="onProgressChange" />
 
           <!-- 两个按钮，缩小宽度，水平排列 -->
-          <div
-            class="d-flex justify-center"
-            style="gap: 8px; margin-top: 6px; width: 100%;"
-          >
-            <v-btn
-              @click="changePlaybackSpeed"
-              color="secondary"
-              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
-            >
+          <div class="d-flex justify-center" style="gap: 8px; margin-top: 6px; width: 100%;">
+            <v-btn @click="changePlaybackSpeed" color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;">
               {{ playbackSpeed }}x
             </v-btn>
-            <v-btn
-              @click="togglePlayPause"
-              color="secondary"
-              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
-            >
+            <v-btn @click="togglePlayPause" color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;">
               {{ isPlaying ? '暂停' : '播放' }}
             </v-btn>
-            <v-btn
-              @click="goToDashboard"
-              color="secondary"
-              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;"
-            >
+            <v-btn @click="goToDashboard" color="secondary"
+              style="flex: 1; min-width: 60px; font-size: 0.85rem; padding: 6px 8px;">
               曲线
             </v-btn>
           </div>
         </div>
       </v-col>
     </v-row>
-    
+
     <!-- 悬浮按键和输入框区域 -->
     <div class="data-input-panel" :class="{ 'panel-collapsed': isPanelCollapsed }">
       <!-- 悬浮按键 -->
-      <v-btn 
-        class="toggle-button"
-        @click="togglePanel"
-        color="white"
-        fab
-        small
-        dark
-        style="width: 60px; height: 60px;"
-      >
+      <v-btn class="toggle-button" @click="togglePanel" color="white" fab small dark style="width: 60px; height: 60px;">
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <span style="color: black; font-size: 14px; margin-bottom: 4px;">文件</span>
-          <v-icon style="color: black; font-size: 18px;">{{ isPanelCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left' }}</v-icon>
+          <v-icon style="color: black; font-size: 18px;">{{ isPanelCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-left'
+          }}</v-icon>
         </div>
       </v-btn>
-      
+
       <!-- 输入框区域 -->
       <div v-show="!isPanelCollapsed" class="input-fields">
         <div class="input-group">
-          <v-text-field
-            v-model="subject_id"
-            @input="saveSubjectId"
-            label="Subject ID"
-            outlined
-            dense
-            hide-details
-            class="input-field"
-          ></v-text-field>
+          <v-text-field v-model="subject_id" @input="saveSubjectId" label="Subject ID" outlined dense hide-details
+            class="input-field"></v-text-field>
         </div>
         <div class="input-group">
-          <v-text-field
-            v-model="trial_id"
-            @input="saveTrialId"
-            label="Trial ID"
-            outlined
-            dense
-            hide-details
-            class="input-field"
-          ></v-text-field>
+          <v-text-field v-model="trial_id" @input="saveTrialId" label="Trial ID" outlined dense hide-details
+            class="input-field"></v-text-field>
         </div>
-        <v-btn
-          @click="loadData"
-          color="primary"
-          class="load-button"
-          small
-          depressed
-          style="width: 100%;"
-        >
+        <v-btn @click="loadData" color="primary" class="load-button" small depressed style="width: 100%;">
           <span style="color: black; font-size: 14px;">导入</span>
         </v-btn>
       </div>
@@ -157,13 +93,20 @@ export default {
       progress: 0, // 视频进度
       videoDuration: 0, // 视频总时长
       playbackSpeed: 1, // 当前倍速
-      videos : [],
+      videos: [],
       animationId: 0, // 当前动画帧
-      
+
       // 添加Subject ID和Trial ID相关变量，从localStorage中获取默认值
       subject_id: localStorage.getItem('subject_id') || '',
       trial_id: localStorage.getItem('trial_id') || '',
       isPanelCollapsed: localStorage.getItem('isPanelCollapsed') === 'true' || false, // 控制面板展开/收起状态
+
+      // subject 相关资源的路径，默认值使用 dataForVisualizer 目录下的内容
+      video1Src: '/dataForVisualizer/1.mp4', // 默认视频1路径
+      video2Src: '/dataForVisualizer/2.mp4', // 默认视频2路径
+      osimPath: '/dataForVisualizer/LaiUhlrich2022_scaled.osim', // 默认骨骼文件路径
+      motPath: '/dataForVisualizer/2.mot', // 默认动作文件路径
+      jsonPath: '/dataForVisualizer/2.json', // 默认变换文件路径
     };
   },
   methods: {
@@ -175,24 +118,86 @@ export default {
       this.isPanelCollapsed = !this.isPanelCollapsed;
       localStorage.setItem('isPanelCollapsed', this.isPanelCollapsed);
     },
-    
+
     // 保存Subject ID到localStorage
     saveSubjectId(value) {
       localStorage.setItem('subject_id', value);
     },
-    
+
     // 保存Trial ID到localStorage
     saveTrialId(value) {
       localStorage.setItem('trial_id', value);
     },
-    
-    // 加载数据的方法（待实现具体逻辑）
-    loadData() {
+
+    // 加载数据的方法
+    async loadData() {
       console.log('Subject ID:', this.subject_id);
       console.log('Trial ID:', this.trial_id);
-      // 具体的文件加载逻辑将在后续实现
+
+      if (!this.subject_id || !this.trial_id) {
+        console.error('Subject ID 和 Trial ID 不能为空');
+        return;
+      }
+
+      try {
+        // 构建动态路径
+        this.updateAssetPaths();
+
+        // 更新视频源并重新加载
+        await this.reloadVideos();
+
+        // 重新加载3D场景
+        await this.loadAndBuildScene();
+
+        console.log('数据加载完成');
+      } catch (error) {
+        console.error('数据加载失败:', error);
+      }
     },
-    
+
+    // 更新资源路径
+    updateAssetPaths() {
+      this.video1Src = `${this.subject_id}\\Videos\\Cam0\\InputMedia\\${this.trial_id}\\${this.trial_id}.mp4`
+      this.video2Src = `${this.subject_id}\\Videos\\Cam0\\OutputMedia_1x736\\${this.trial_id}\\${this.trial_id}_rotatedwithKeypoints.mp4`;
+      this.osimPath = `${this.subject_id}\\OpenSimData\\Model\\LaiUhlrich2022_scaled.osim`;
+      this.motPath = `${this.subject_id}\\OpenSimData\\Kinematics\\${this.trial_id}.mot`;
+      this.jsonPath = `${this.subject_id}\\VisualizerJsons\\${this.trial_id}\\${this.trial_id}.json`;
+
+      console.log('Updated paths:', {
+        video1: this.video1Src,
+        video2: this.video2Src,
+        osim: this.osimPath,
+        mot: this.motPath,
+        json: this.jsonPath
+      });
+    },
+
+    // 重新加载视频
+    async reloadVideos() {
+      // 暂停当前视频
+      if (this.videos && this.videos.length > 0) {
+        this.videos.forEach(video => {
+          video.pause();
+          video.removeEventListener('timeupdate', this.syncProgress);
+        });
+      }
+
+      // 等待下一帧以确保DOM更新
+      await this.$nextTick();
+
+      // 重新设置视频时长和事件监听
+      this.setVideoDuration();
+
+      // 重新设置事件监听器
+      for (const video of this.videos) {
+        video.addEventListener('timeupdate', this.syncProgress);
+      }
+
+      // 重置播放状态
+      this.isPlaying = false;
+      this.progress = 0;
+    },
+
     // 设置视频时长
     setVideoDuration() {
       this.videos = [this.$refs.video1, this.$refs.video2];
@@ -226,7 +231,7 @@ export default {
       if (currentTime >= this.videoDuration) {
         this.progress = 0; // 进度条重置
       }
-  },
+    },
 
     async togglePlayPause() {
       const videos = [this.$refs.video1, this.$refs.video2];
@@ -257,13 +262,13 @@ export default {
         video.currentTime = value;
       }
       //this.updateFrame();
-      if(!this.isPlaying){
+      if (!this.isPlaying) {
         this.videos.forEach(v => v.pause());
         //this.updateFrame();
-        this.animationState.isPlaying = false;    
-        
+        this.animationState.isPlaying = false;
+
       }
-      this.updateFrame(); 
+      this.updateFrame();
     },
 
     async setup3D() {
@@ -363,10 +368,28 @@ export default {
     },
 
     async loadAndBuildScene() {
+      // 清理现有场景中的骨骼模型
+      if (this.meshes.skeleton) {
+        this.scene.remove(this.meshes.skeleton);
+        this.meshes.skeleton.traverse((child) => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(m => m.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        });
+      }
+
+      // 重置meshes对象
+      this.meshes = {};
+
       const [osimText, motText, transformJson] = await Promise.all([
-        fetch('/dataForVisualizer/LaiUhlrich2022_scaled.osim').then(r => r.text()),
-        fetch('/dataForVisualizer/2.mot').then(r => r.text()),
-        fetch('/dataForVisualizer/2.json').then(r => r.json())
+        fetch(this.osimPath).then(r => r.text()),
+        fetch(this.motPath).then(r => r.text()),
+        fetch(this.jsonPath).then(r => r.json())
       ]);
 
       const skeleton = this.parseOsimSkeleton(osimText);
@@ -450,23 +473,23 @@ export default {
     },
   },
 
-    async mounted() {
-      await this.setup3D();
-      await this.loadAndBuildScene();
-      // 设置视频时长
-      this.setVideoDuration();
-      
-      // 监听 video1 和 video2 的时间更新
-      for (const video of this.videos) {
-        video.addEventListener('timeupdate', this.syncProgress);
-      }
-      this.animate();
-    },
+  async mounted() {
+    await this.setup3D();
+    await this.loadAndBuildScene();
+    // 设置视频时长
+    this.setVideoDuration();
+
+    // 监听 video1 和 video2 的时间更新
+    for (const video of this.videos) {
+      video.addEventListener('timeupdate', this.syncProgress);
+    }
+    this.animate();
+  },
 
   beforeDestroy() {
     window.removeEventListener('resize', this.onResize);
 
-     for (const video of this.videos) {
+    for (const video of this.videos) {
       video.pause();
       video.removeEventListener('timeupdate', this.syncProgress);
     }

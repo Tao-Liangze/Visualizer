@@ -52,7 +52,7 @@ const objLoader = new OBJLoader();
 
 
 export default {
-    name: 'Visualizer',
+    name: 'AI',
     components: {
         VideoNavigation,
         SpeedControl
