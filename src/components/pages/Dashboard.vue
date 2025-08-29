@@ -7,18 +7,14 @@
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
           <div class="spinner"></div>
         </div>
-        <div style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; color:black">
-          <h3>加载中</h3>
+        <div
+          style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; color:black">
+          <h3>Loading Chart</h3>
         </div>
       </div>
 
-      <LineChartGenerator
-        id="chart"
-        :chart-options="chartOptions"
-        :chart-data="chartData"
-        style="position: relative; width: 100%; height: 100%;"
-        ref="chartRef"
-      />
+      <LineChartGenerator id="chart" :chart-options="chartOptions" :chart-data="chartData"
+        style="position: relative; width: 100%; height: 100%;" ref="chartRef" />
     </div>
 
     <!-- Left floating button. -->
@@ -38,7 +34,8 @@
     <!-- Left sidebar. -->
     <v-card class="sidebar left-sidebar" color="#424242">
       <div class="pa-4 left-menu-close-button">
-        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2" @click="leftMenu">
+        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2"
+          @click="leftMenu">
           <v-icon small color="white">mdi-chevron-left</v-icon>
         </v-btn>
       </div>
@@ -47,7 +44,7 @@
         <v-subheader class="subheader-bold white--text"></v-subheader>
         <div class="left d-flex flex-column pa-2">
 
-<!--          <hr>-->
+          <!--          <hr>-->
 
 
           <v-select v-bind:items="x_quantities" v-model="x_quantity_selected" label="X轴" outlined dense
@@ -79,7 +76,8 @@
     <!-- Right sidebar. -->
     <v-card class="sidebar right-sidebar" color="#424242">
       <div class="pa-4 right-menu-close-button">
-        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2" @click="rightMenu">
+        <v-btn width="36px" height="36px" fab small color="rgba(255, 255, 255, 0.15)" class="elevation-2"
+          @click="rightMenu">
           <v-icon small color="white">mdi-chevron-right</v-icon>
         </v-btn>
       </div>
@@ -98,32 +96,30 @@
 
           <v-text-field v-model="chartOptions.scales.y.title.text" label="Y轴标题" outlined dense></v-text-field>
 
-          <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number" @input="drawChart"></v-text-field>
+          <v-text-field v-model="chart_line_width" label="线宽" outlined dense type="number"
+            @input="drawChart"></v-text-field>
 
-          <v-select v-model="chart_smoothing" v-bind:items="chart_smoothing_options" label="数据平滑"
-            outlined dense v-on:change="drawChart"></v-select>
+          <v-select v-model="chart_smoothing" v-bind:items="chart_smoothing_options" label="数据平滑" outlined dense
+            v-on:change="drawChart"></v-select>
 
           <v-select v-model="chartOptions.plugins.legend.position" v-bind:items="chart_legend_position" label="图例位置"
             outlined dense v-on:change="placeholderFunction"></v-select>
 
-          <v-select v-model="chartOptions.plugins.legend.align" v-bind:items="chart_legend_alignment"
-            label="图例对齐" outlined dense v-on:change="placeholderFunction"></v-select>
+          <v-select v-model="chartOptions.plugins.legend.align" v-bind:items="chart_legend_alignment" label="图例对齐"
+            outlined dense v-on:change="placeholderFunction"></v-select>
 
 
           <v-btn class="w-100" @click="onResetZoom">
             Reset Zoom
           </v-btn>
 
-          <icon-tooltip
-            tooltip-text="
+          <icon-tooltip tooltip-text="
                 Zoom instructions:</br>
                  - <b>Zoom</b>: Click and Drag over a zone.</br>
                  - <b>Move</b>: CTRL + Click and move mouse.</br>
                  - <b>Zoom on X</b>: Mouse wheel on X axis.</br>
                  - <b>Zoom on Y</b>: Mouse wheel on Y axis.</br>
-            "
-            iconClass="fas fa-question-circle"
-            >
+            " iconClass="fas fa-question-circle">
           </icon-tooltip>
 
 
@@ -157,7 +153,8 @@ import {
   LineElement,
   LinearScale,
   CategoryScale,
-  PointElement} from 'chart.js'
+  PointElement
+} from 'chart.js'
 
 ChartJS.register(
   Title,
@@ -175,12 +172,17 @@ export default {
   components: {
     LineChartGenerator,
     IconTooltip,
-   },
+  },
   // This function is executed once the page has been loaded.
   created: async function () {
-      // Indicates if the current logged in user owns the session.
-      this.session_owned = false
-      this.current_session_id = this.$route.params.id;
+    // Indicates if the current logged in user owns the session.
+    this.session_owned = false
+    this.current_session_id = this.$route.params.id;
+
+    // 先检查是否有来自HelloWorld的更新路径，如果有则使用，否则使用默认路径
+    if (this.visualizerPaths?.motPath && this.visualizerPaths.motPath !== '/dataForVisualizer/2.mot') {
+      console.log('Using updated paths from HelloWorld');
+    }
 
     await this.loadVisualizerData();
   },
@@ -188,16 +190,18 @@ export default {
     ...mapActions('data', ['loadSession', 'loadSubjects', 'loadExistingSessions']),
     async loadVisualizerData() {
       try {
-        const response = await axios.get('/dataForVisualizer/2.mot');
+        // 使用从Vuex store获取的动态路径，如果没有则使用默认路径
+        const motPath = this.visualizerPaths?.motPath || '/dataForVisualizer/2.mot';
+        const response = await axios.get(motPath);
         this.mot_data = response.data;
-        
+
         const lines = this.mot_data.split(/\r?\n/);
         let headerLines = 0;
         while (lines[headerLines].trim() !== 'endheader') {
           headerLines++;
         }
         headerLines++; // Skip endheader line
-        
+
         const columnNames = lines[headerLines].trim().split('	');
         this.x_quantities = columnNames;
         this.y_quantities = columnNames.slice(1);
@@ -285,10 +289,10 @@ export default {
     },
 
     onResetZoom() {
-        const chart = this.$refs.chartRef.getCurrentChart();
-        if (chart) {
-          chart.resetZoom();
-        }
+      const chart = this.$refs.chartRef.getCurrentChart();
+      if (chart) {
+        chart.resetZoom();
+      }
     },
 
     onXQuantitySelected(xQuantitySelected) {
@@ -302,10 +306,10 @@ export default {
     },
     onChartDownload() {
       if (this.chart_download_format_selected === 'png') {
-          const canvas = document.getElementById("chart").getElementsByTagName('canvas')[0];
-          const downloadLink = document.createElement('a');
-          downloadLink.setAttribute('download', 'chart.png');
-          canvas.toBlob(function(blob) {
+        const canvas = document.getElementById("chart").getElementsByTagName('canvas')[0];
+        const downloadLink = document.createElement('a');
+        downloadLink.setAttribute('download', 'chart.png');
+        canvas.toBlob(function (blob) {
           const url = URL.createObjectURL(blob);
           downloadLink.setAttribute('href', url);
           downloadLink.click();
@@ -324,9 +328,9 @@ export default {
       document.getElementById("spinner-layer").style.display = "block";
       document.getElementById("chart").style.display = "None";
 
-      for (let i=0; i < this.selected_trials.length; i++) {
+      for (let i = 0; i < this.selected_trials.length; i++) {
         // let trial_id = this.selected_trials[i].trial_selected.id
-        if (this.selected_trials[i].trial_selected === null) { continue}
+        if (this.selected_trials[i].trial_selected === null) { continue }
         let ik_results = this.selected_trials[i].trial_selected.results.filter(element => element.tag == "ik_results")
 
         if (ik_results && ik_results.length > 0) {
@@ -381,43 +385,43 @@ export default {
       document.getElementById("spinner-layer").style.display = "None";
       document.getElementById("chart").style.display = "block";
     },
-    
+
     // 数据平滑处理函数
     applySmoothing(dataPoints) {
       if (this.chart_smoothing <= 0 || dataPoints.length <= this.chart_smoothing) {
         return dataPoints;
       }
-      
+
       // 创建新的数据点数组
       const smoothedDataPoints = [];
-      
+
       // 对每个Y轴变量进行平滑处理
       for (let i = 0; i < dataPoints.length; i++) {
         const smoothedPoint = { ...dataPoints[i] };
-        
+
         // 对每个选定的Y轴变量应用移动平均
         for (const yVar of this.y_quantities_selected) {
           let sum = 0;
           let count = 0;
-          
+
           // 计算移动平均窗口内的值
-          for (let j = Math.max(0, i - this.chart_smoothing); 
-               j <= Math.min(dataPoints.length - 1, i + this.chart_smoothing); 
-               j++) {
+          for (let j = Math.max(0, i - this.chart_smoothing);
+            j <= Math.min(dataPoints.length - 1, i + this.chart_smoothing);
+            j++) {
             sum += dataPoints[j][yVar];
             count++;
           }
-          
+
           // 设置平滑后的值
           smoothedPoint[yVar] = sum / count;
         }
-        
+
         smoothedDataPoints.push(smoothedPoint);
       }
-      
+
       return smoothedDataPoints;
     },
-    
+
     async drawChart() {
       if (!this.mot_data || !this.y_quantities_selected || this.y_quantities_selected.length === 0) {
         this.isLoading = true;
@@ -445,13 +449,13 @@ export default {
         return color;
       });
       if (selectedText == "Spectral" || selectedText == "Rainbow" || selectedText == "Red-Yellow-Blue" || selectedText == "Yellow-Green-Blue")
-          colors = chroma.scale(this.chart_color_scales_selected).colors(this.y_quantities_selected.length);
+        colors = chroma.scale(this.chart_color_scales_selected).colors(this.y_quantities_selected.length);
       else if (selectedText == "Yellow-Green")
-          colors = chroma.scale(this.chart_color_scales_selected).correctLightness().colors(this.y_quantities_selected.length);
+        colors = chroma.scale(this.chart_color_scales_selected).correctLightness().colors(this.y_quantities_selected.length);
       else if (selectedText == "Red-Green" || selectedText == "Red-Blue" || selectedText == "Green-Blue")
-          colors = chroma.scale(this.chart_color_scales_selected).gamma(0.75).cache(false).colors(this.y_quantities_selected.length);
+        colors = chroma.scale(this.chart_color_scales_selected).gamma(0.75).cache(false).colors(this.y_quantities_selected.length);
       else
-          colors = chroma.scale(this.chart_color_scales_selected).correctLightness().gamma(2).cache(false).colors(this.y_quantities_selected.length);
+        colors = chroma.scale(this.chart_color_scales_selected).correctLightness().gamma(2).cache(false).colors(this.y_quantities_selected.length);
 
       // Split file in lines.
       let lines = this.mot_data.split("\n");
@@ -478,20 +482,20 @@ export default {
       // Get column names.
       let allColumnNames = lines[k].trim().split('\t');
       let columnIndices = {};
-      for(let i=0; i<allColumnNames.length; i++) {
-          columnIndices[allColumnNames[i]] = i;
+      for (let i = 0; i < allColumnNames.length; i++) {
+        columnIndices[allColumnNames[i]] = i;
       }
       k++;
 
       let dataset = {}
-      for(j = 0; j < this.y_quantities_selected.length; j++) {
+      for (j = 0; j < this.y_quantities_selected.length; j++) {
         dataset = {};
         dataset["data"] = [];
         dataset["label"] = this.y_quantities_selected[j];
         dataset["backgroundColor"] = colors[j];
         dataset["borderColor"] = colors[j];
         dataset["fill"] = false;
-        
+
         // 确保当点风格为line时，无论线宽如何都能正确显示曲线
         if (this.chart_point_style === 'line') {
           dataset["showLine"] = true;
@@ -504,10 +508,10 @@ export default {
           dataset["pointStyle"] = this.chart_point_style;
           dataset["radius"] = 3; // 使用固定的小点大小
         }
-        
+
         dataset["parsing"] = {
-            "xAxisKey": this.x_quantity_selected,
-            "yAxisKey": this.y_quantities_selected[j]
+          "xAxisKey": this.x_quantity_selected,
+          "yAxisKey": this.y_quantities_selected[j]
         }
         this.chartData.datasets.push(dataset);
       }
@@ -524,19 +528,19 @@ export default {
         let splitted = lines[k].trim().split("\t");
         let data_point = {};
         data_point[this.x_quantity_selected] = parseFloat(splitted[x_idx]);
-        for(let i=0; i<this.y_quantities_selected.length; i++){
-            data_point[this.y_quantities_selected[i]] = parseFloat(splitted[y_indices[i]]);
+        for (let i = 0; i < this.y_quantities_selected.length; i++) {
+          data_point[this.y_quantities_selected[i]] = parseFloat(splitted[y_indices[i]]);
         }
         chart_data_points.push(data_point);
       }
-      
+
       // 应用数据平滑处理
       if (this.chart_smoothing > 0) {
         chart_data_points = this.applySmoothing(chart_data_points);
       }
-      
+
       this.chartData.datasets.forEach(d => {
-          d.data = chart_data_points;
+        d.data = chart_data_points;
       })
 
       // Show chart and hide spinner.
@@ -546,9 +550,9 @@ export default {
     },
     generateUUID() {
       return "10000000-1000-4000-8000-100000000000".replace(
-          /[018]/g,
-          c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        /[018]/g,
+        c =>
+          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
       );
     },
   },
@@ -658,9 +662,9 @@ export default {
               },
               usePointStyle: false,
               boxWidth: 15,
-              generateLabels: function(chart) {
+              generateLabels: function (chart) {
                 const datasets = chart.data.datasets;
-                return datasets.map(function(dataset, i) {
+                return datasets.map(function (dataset, i) {
                   return {
                     text: dataset.label,
                     fillStyle: dataset.borderColor,
@@ -701,29 +705,42 @@ export default {
       subjects: state => state.data.subjects,
       loggedIn: state => state.auth.verified,
       user_id: state => state.auth.user_id,
+      visualizerPaths: state => state.data.visualizerPaths,
     }),
 
   },
-  async mounted () {
+  watch: {
+    // 监听visualizerPaths的变化，当HelloWorld更新路径时自动重新加载数据
+    'visualizerPaths.motPath': {
+      handler(newPath, oldPath) {
+        if (newPath !== oldPath && newPath) {
+          console.log('MOT path changed, reloading visualizer data...');
+          this.loadVisualizerData();
+        }
+      },
+      immediate: false
+    }
+  },
+  async mounted() {
     // Set session as current session.
     this.current_session_id = this.$route.params.id;
 
     // If not logged in, load session from params and show trials.
-    await this.loadSubjects({session_id: this.current_session_id})
+    await this.loadSubjects({ session_id: this.current_session_id })
     await this.loadSession(this.current_session_id)
     if (this.current_session_id && this.session?.public) {
       this.public_session_id = this.current_session_id
     }
 
     if (this.current_session_id && this.selected_trials.length === 0) {
-        let subject = this.subjects.filter(subject => subject.id === this.session.subject)[0]
-        this.selected_trials.push({
-          uuid: this.generateUUID(),
-          subject_selected: subject,
-          session_selected: this.session,
-          trial_selected: this.session.trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')[0],
-          offset: 0,
-        })
+      let subject = this.subjects.filter(subject => subject.id === this.session.subject)[0]
+      this.selected_trials.push({
+        uuid: this.generateUUID(),
+        subject_selected: subject,
+        session_selected: this.session,
+        trial_selected: this.session.trials.filter(trial => trial.status === 'done' && trial.name !== 'neutral' && trial.name !== 'calibration')[0],
+        offset: 0,
+      })
     }
     if (!this.current_session_id && this.selected_trials.length == 0) {
       this.selected_trials.push({
@@ -737,7 +754,7 @@ export default {
 
     await this.loadTrialResults()
     if (this.loggedIn && this.sessions.length <= 1) {
-      await this.loadExistingSessions({reroute: false, update_sessions: true})
+      await this.loadExistingSessions({ reroute: false, update_sessions: true })
     }
   },
 }
@@ -872,6 +889,8 @@ export default {
 }
 
 @keyframes spinner {
-  to {transform: rotate(360deg);}
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

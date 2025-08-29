@@ -75,9 +75,13 @@
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { mapState, mapActions } from 'vuex'
 
 export default {
   name: 'SkeletonViewer',
+  computed: {
+    ...mapState('data', ['visualizerPaths'])
+  },
   data() {
     return {
       camera: null,
@@ -110,6 +114,7 @@ export default {
     };
   },
   methods: {
+    ...mapActions('data', ['updateVisualizerPaths']),
     goToDashboard() {
       this.$router.push({ name: 'Dashboard', params: { id: '' } });
     },
@@ -169,6 +174,15 @@ export default {
         osim: this.osimPath,
         mot: this.motPath,
         json: this.jsonPath
+      });
+
+      // 更新Vuex store中的路径，以便Dashboard组件使用
+      this.updateVisualizerPaths({
+        motPath: this.motPath,
+        osimPath: this.osimPath,
+        jsonPath: this.jsonPath,
+        video1Src: this.video1Src,
+        video2Src: this.video2Src
       });
     },
 
@@ -474,6 +488,15 @@ export default {
   },
 
   async mounted() {
+    // 初始化时从Vuex store获取路径
+    if (this.visualizerPaths) {
+      this.motPath = this.visualizerPaths.motPath;
+      this.osimPath = this.visualizerPaths.osimPath;
+      this.jsonPath = this.visualizerPaths.jsonPath;
+      this.video1Src = this.visualizerPaths.video1Src;
+      this.video2Src = this.visualizerPaths.video2Src;
+    }
+
     await this.setup3D();
     await this.loadAndBuildScene();
     // 设置视频时长
